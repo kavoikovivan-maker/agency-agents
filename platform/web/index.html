@@ -3,36 +3,107 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0c0d0f" />
   <title>Company Agency</title>
   <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
-  <main class="shell">
-    <header>
-      <div>
-        <div class="eyebrow">AI WORKSPACE</div>
-        <h1>Company Agency</h1>
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-head">
+        <div class="brand">
+          <span class="dot ok"></span>
+          <span>Company Agency</span>
+        </div>
+        <button id="newProjectBtn" class="icon-btn" title="Новый проект">+</button>
       </div>
-      <span id="status" class="status">проверка…</span>
-    </header>
+      <div class="project-list" id="projectList"></div>
 
-    <section class="hero">
-      <p>Единое рабочее пространство для команды AI-агентов компании.</p>
-      <div class="composer">
-        <textarea placeholder="Опишите задачу для агентства…" disabled></textarea>
-        <button disabled>Отправить</button>
+      <div class="sidebar-section">
+        <div class="sidebar-title">История задач</div>
+        <div class="task-history" id="taskHistory"></div>
       </div>
-      <small>Запуск задач будет включён после подключения оркестратора.</small>
-    </section>
 
-    <section class="panel">
-      <div class="panel-title">
-        <h2>Агенты</h2>
-        <span id="count">—</span>
+      <div class="sidebar-footer">
+        <button id="settingsBtn" class="text-btn">Настройки</button>
       </div>
-      <div id="agents" class="agents"></div>
-    </section>
-  </main>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <button id="menuBtn" class="icon-btn only-mobile" title="Меню">≡</button>
+        <div>
+          <div class="eyebrow" id="projectEyebrow">ПРОЕКТ</div>
+          <h1 id="projectName">Выберите проект</h1>
+        </div>
+        <span id="healthStatus" class="status">проверка…</span>
+      </header>
+
+      <section class="composer-card">
+        <textarea id="taskInput" placeholder="Опишите задачу для агентства…" rows="4"></textarea>
+        <div class="composer-row">
+          <label class="file-btn">
+            📎 Файл
+            <input type="file" id="fileInput" hidden />
+          </label>
+          <span id="attachedFile" class="attached-file"></span>
+          <button id="submitBtn" class="primary-btn">Отправить</button>
+        </div>
+      </section>
+
+      <section class="task-view" id="taskView" hidden>
+        <div class="task-progress">
+          <div class="task-progress-head">
+            <span class="status-dot" id="taskStatusDot"></span>
+            <strong id="taskStatusLabel">—</strong>
+            <span id="taskMeta" class="task-meta"></span>
+          </div>
+          <div class="task-actions">
+            <button id="retryBtn" class="text-btn" hidden>Повторить</button>
+            <button id="cancelBtn" class="text-btn" hidden>Отменить</button>
+          </div>
+        </div>
+
+        <details class="agents-used" id="agentsUsed">
+          <summary>Агенты (<span id="agentsUsedCount">0</span>)</summary>
+          <div id="agentsUsedList" class="agents-used-list"></div>
+        </details>
+
+        <div class="final-answer" id="finalAnswer" hidden>
+          <h2>Итоговый ответ</h2>
+          <div id="finalAnswerText" class="answer-text"></div>
+        </div>
+
+        <div class="event-log" id="eventLog"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-title">
+          <h2>Каталог агентов</h2>
+          <span id="count">—</span>
+        </div>
+        <div id="agents" class="agents"></div>
+      </section>
+
+      <section class="panel" id="filesPanel">
+        <div class="panel-title">
+          <h2>Файлы проекта</h2>
+        </div>
+        <div id="filesList" class="files-list"></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal" id="settingsModal" hidden>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2>Настройки</h2>
+        <button id="closeSettings" class="icon-btn">✕</button>
+      </div>
+      <div id="settingsBody" class="modal-body"></div>
+    </div>
+  </div>
+
   <script src="/static/app.js"></script>
 </body>
 </html>

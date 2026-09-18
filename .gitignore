@@ -57,6 +57,11 @@ dist/
 build/
 *.egg-info/
 
+# Platform runtime data (SQLite db, uploads, local env)
+platform/backend/data/
+platform/.env
+.pytest_cache/
+
 # Personal notes and scratch files
 scratch/
 notes/
