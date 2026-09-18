@@ -23,13 +23,23 @@ async function api(path, options = {}) {
 
 async function loadHealth() {
   const el = $("healthStatus");
+  const providerEl = $("providerStatus");
   try {
-    const health = await api("/api/health");
+    const [health, runtime] = await Promise.all([
+      api("/api/health"),
+      api("/api/settings/runtime"),
+    ]);
     el.textContent = health.ok ? "система доступна" : "ошибка";
     el.className = `status ${health.ok ? "ok" : "bad"}`;
+    providerEl.textContent = runtime.mock_mode
+      ? `MOCK · ${runtime.model}`
+      : `${runtime.provider.toUpperCase()} · ${runtime.model}`;
+    providerEl.className = `status ${runtime.mock_mode ? "warn" : "ok"}`;
   } catch {
     el.textContent = "недоступна";
     el.className = "status bad";
+    providerEl.textContent = "модель недоступна";
+    providerEl.className = "status bad";
   }
 }
 
