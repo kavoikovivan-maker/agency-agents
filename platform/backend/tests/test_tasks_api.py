@@ -82,3 +82,52 @@ def test_task_cancel_rejected_when_already_completed(client):
 
     response = client.post(f"/api/tasks/{task['id']}/cancel")
     assert response.status_code == 400
+
+
+def test_russian_beverage_task_exposes_routing_plan_and_finance(client):
+    project = client.post("/api/projects", json={"name": "Напитки"}).json()
+    task = client.post(
+        "/api/tasks",
+        json={
+            "project_id": project["id"],
+            "input_text": (
+                "Рассчитай рецептуру молочного лимонада на 1000 литров, "
+                "Брикс 4.8-4.9, проверь себестоимость и риски производства"
+            ),
+        },
+    ).json()
+    final = wait_for_status(client, task["id"], {"completed", "failed"})
+    assert final["status"] == "completed"
+    divisions = {run["division"] for run in final["runs"] if run["role"] == "agent"}
+    assert "finance" in divisions
+    assert divisions.intersection({"engineering", "product", "specialized"})
+    levels = {event["level"] for event in final["events"]}
+    assert "routing" in levels
+    assert "plan" in levels
+    assert "stage" in levels
+    assert final["final_answer"]
+
+
+def test_retry_replaces_stale_runs_without_duplicating_artifacts(client):
+    project = client.post("/api/projects", json={"name": "Retry clean"}).json()
+    task = client.post(
+        "/api/tasks",
+        json={"project_id": project["id"], "input_text": "Проверь себестоимость напитка"},
+    ).json()
+    first = wait_for_status(client, task["id"], {"completed", "failed"})
+    assert first["status"] == "completed"
+    first_agent_ids = [run["agent_id"] for run in first["runs"] if run["role"] == "agent"]
+
+    with session_scope() as db:
+        db_task = db.get(Task, task["id"])
+        db_task.status = "failed"
+        db_task.error_message = "forced retry"
+        db.commit()
+
+    response = client.post(f"/api/tasks/{task['id']}/retry")
+    assert response.status_code == 200
+    second = wait_for_status(client, task["id"], {"completed", "failed"})
+    assert second["status"] == "completed"
+    second_agent_ids = [run["agent_id"] for run in second["runs"] if run["role"] == "agent"]
+    assert second_agent_ids == first_agent_ids
+    assert len(second_agent_ids) == len(set(second_agent_ids))
