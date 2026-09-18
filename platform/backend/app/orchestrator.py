@@ -1,4 +1,4 @@
-"""Task classification, agent selection, execution plan and synthesis."""
+"""Task classification, agent selection, staged execution and synthesis."""
 from __future__ import annotations
 
 import asyncio
@@ -9,24 +9,41 @@ from typing import Any
 from .catalog import catalog
 from .providers.base import Provider
 
+MAX_AGENT_INSTRUCTIONS_CHARS = 12000
+
 CLASSES = {
-    "engineering": ["code", "bug", "api", "backend", "frontend", "database", "deploy", "infrastructure", "test", "архитект", "код", "api", "база", "дебаг", "сервис"],
-    "design": ["design", "ui", "ux", "visual", "brand", "persona", "дизайн", "интерфейс", "ux", "ui"],
-    "marketing": ["marketing", "campaign", "ads", "seo", "content", "growth", "маркет", "кампейн", "seo", "контент", "реклама"],
-    "sales": ["sales", "lead", "deal", "pipeline", "outreach", "продаж", "лид", "сделк", "воркфлоу"],
-    "finance": ["finance", "budget", "forecast", "invoice", "revenue", "финанс", "бюджет", "себестоимост", "стоимост", "доход"],
-    "product": ["product", "roadmap", "feature", "spec", "requirement", "продукт", "фича", "roadmap", "специфик", "требован"],
-    "research": ["research", "analysis", "study", "survey", "исслед", "анализ", "опрос", "деталь"],
-    "support": ["support", "ticket", "customer", "helpdesk", "поддержк", "тикет", "клиент"],
-    "security": ["security", "vulnerability", "audit", "compliance", "безопасност", "аудит", "комплаенс"],
+    "engineering": ["code", "bug", "api", "backend", "frontend", "database", "deploy", "infrastructure", "test", "архитект", "код", "база", "дебаг", "сервис", "производ", "технолог"],
+    "design": ["design", "ui", "ux", "visual", "brand", "persona", "дизайн", "интерфейс"],
+    "marketing": ["marketing", "campaign", "ads", "seo", "content", "growth", "маркет", "реклама", "бренд"],
+    "sales": ["sales", "lead", "deal", "pipeline", "outreach", "продаж", "лид", "сделк"],
+    "finance": ["finance", "budget", "forecast", "invoice", "revenue", "cost", "costing", "финанс", "бюджет", "себестоимост", "стоимост", "доход"],
+    "product": ["product", "roadmap", "feature", "spec", "requirement", "formula", "formulation", "продукт", "рецептур", "специфик", "требован"],
+    "research": ["research", "analysis", "study", "survey", "исслед", "анализ", "опрос"],
+    "support": ["support", "ticket", "customer", "helpdesk", "поддержк", "клиент"],
+    "security": ["security", "vulnerability", "audit", "compliance", "безопасност", "аудит", "комплаенс", "качество"],
     "general": [],
+}
+
+DOMAIN_DIVISION_BOOSTS = {
+    "beverage": {"product": 5, "engineering": 5, "specialized": 4, "research": 2},
+    "finance": {"finance": 7, "product": 2},
+    "procurement": {"finance": 4, "project-management": 3, "specialized": 3, "sales": 1},
+    "quality": {"security": 4, "research": 3, "specialized": 3, "engineering": 2},
+    "marketing": {"marketing": 6, "sales": 3, "product": 2},
+}
+
+DOMAIN_TERMS = {
+    "beverage": ["напит", "лимонад", "молоч", "рецептур", "брикс", "brix", "сахар", "сырье", "производ", "технолог"],
+    "finance": ["себестоим", "стоимост", "бюджет", "маржа", "цена", "cost", "costing", "finance"],
+    "procurement": ["закуп", "поставщик", "сырье", "упаков", "склад", "supply", "procurement"],
+    "quality": ["качество", "риск", "безопасност", "контроль", "стандарт", "compliance", "quality"],
+    "marketing": ["маркет", "продаж", "рынок", "бренд", "реклама", "marketing", "sales"],
 }
 
 
 def _normalize_text(text: str) -> str:
-    lowered = text.lower()
-    lowered = lowered.replace("ё", "е")
-    lowered = re.sub(r"[^a-zа-я0-9\s]", " ", lowered)
+    lowered = text.lower().replace("ё", "е")
+    lowered = re.sub(r"[^a-zа-я0-9\s.%-]", " ", lowered)
     return " ".join(lowered.split())
 
 
@@ -40,23 +57,107 @@ def classify(task_text: str) -> str:
     return best_label
 
 
-def _score_agent(agent: dict[str, Any], task_tokens: set[str]) -> int:
-    return len(agent["keywords"] & task_tokens)
+def detect_domains(task_text: str) -> set[str]:
+    normalized = _normalize_text(task_text)
+    found: set[str] = set()
+    for domain, terms in DOMAIN_TERMS.items():
+        if any(term in normalized for term in terms):
+            found.add(domain)
+    return found
+
+
+def _task_tokens(task_text: str) -> set[str]:
+    return {tok for tok in _normalize_text(task_text).split() if len(tok) > 2}
+
+
+def _score_agent(agent: dict[str, Any], task_tokens: set[str], domains: set[str]) -> int:
+    score = len(agent["keywords"] & task_tokens)
+    for domain in domains:
+        score += DOMAIN_DIVISION_BOOSTS.get(domain, {}).get(agent["division"], 0)
+    return score
+
+
+def select_agents_with_reasons(task_text: str, max_agents: int = 6) -> list[dict[str, Any]]:
+    tokens = _task_tokens(task_text)
+    domains = detect_domains(task_text)
+    scored: list[tuple[int, dict[str, Any]]] = [
+        (_score_agent(agent, tokens, domains), agent) for agent in catalog()
+    ]
+    scored.sort(key=lambda pair: (pair[0], pair[1]["id"]), reverse=True)
+
+    selected: list[dict[str, Any]] = []
+    seen_divisions: set[str] = set()
+
+    # Ensure important domains are represented before filling by total score.
+    required_divisions: list[str] = []
+    if "beverage" in domains:
+        required_divisions += ["product", "engineering"]
+    if "finance" in domains:
+        required_divisions += ["finance"]
+    if "procurement" in domains:
+        required_divisions += ["project-management", "finance"]
+    if "quality" in domains:
+        required_divisions += ["security", "research"]
+    if "marketing" in domains:
+        required_divisions += ["marketing"]
+
+    for division in required_divisions:
+        if len(selected) >= max_agents or division in seen_divisions:
+            continue
+        candidates = [(score, agent) for score, agent in scored if agent["division"] == division]
+        if candidates:
+            score, agent = candidates[0]
+            selected.append({
+                **agent,
+                "routing_score": score,
+                "routing_reason": f"Нужна роль из направления {division} для домена: {', '.join(sorted(domains))}",
+                "routing_mode": "deterministic",
+            })
+            seen_divisions.add(division)
+
+    for score, agent in scored:
+        if len(selected) >= max_agents:
+            break
+        if score <= 0:
+            continue
+        if any(item["id"] == agent["id"] for item in selected):
+            continue
+        overlap = sorted(agent["keywords"] & tokens)
+        reason_bits = []
+        if overlap:
+            reason_bits.append("совпали термины: " + ", ".join(overlap[:5]))
+        if domains:
+            boosted = [d for d in sorted(domains) if DOMAIN_DIVISION_BOOSTS.get(d, {}).get(agent["division"], 0)]
+            if boosted:
+                reason_bits.append("подходит под домены: " + ", ".join(boosted))
+        selected.append({
+            **agent,
+            "routing_score": score,
+            "routing_reason": "; ".join(reason_bits) or "релевантная специализация",
+            "routing_mode": "deterministic",
+        })
+
+    if not selected:
+        fallback_ids = {"engineering-backend-architect", "product-feedback-synthesizer", "design-ux-researcher"}
+        for agent in catalog():
+            if agent["id"] in fallback_ids:
+                selected.append({
+                    **agent,
+                    "routing_score": 0,
+                    "routing_reason": "резервный универсальный агент",
+                    "routing_mode": "fallback",
+                })
+                if len(selected) >= max(1, min(3, max_agents)):
+                    break
+    if not selected and catalog():
+        agent = catalog()[0]
+        selected = [{**agent, "routing_score": 0, "routing_reason": "резервный агент", "routing_mode": "fallback"}]
+
+    return selected[:max(1, max_agents)]
 
 
 def select_agents(task_text: str, max_agents: int = 6) -> list[dict[str, Any]]:
-    normalized = _normalize_text(task_text)
-    tokens = {tok for tok in normalized.split() if len(tok) > 2}
-    scored = [(_score_agent(a, tokens), a) for a in catalog()]
-    scored.sort(key=lambda pair: pair[0], reverse=True)
-
-    selected = [a for score, a in scored if score > 0][:max_agents]
-    if not selected:
-        fallback_ids = {"engineering-backend-architect", "product-feedback-synthesizer", "design-ux-researcher"}
-        selected = [a for a in catalog() if a["id"] in fallback_ids][: max(1, min(3, max_agents))]
-    if not selected:
-        selected = catalog()[: max(1, min(3, max_agents))]
-    return selected[: max(1, max_agents)]
+    return select_agents_with_reasons(task_text, max_agents)
 
 
 @dataclass
@@ -68,15 +169,51 @@ class StepResult:
     output_text: str
 
 
+@dataclass
+class PlanStage:
+    index: int
+    name: str
+    agents: list[dict[str, Any]]
+
+
+def build_plan(task_text: str, agents: list[dict[str, Any]]) -> list[PlanStage]:
+    technical = [a for a in agents if a["division"] in {"product", "engineering", "specialized", "research"}]
+    business = [a for a in agents if a["division"] in {"finance", "project-management", "marketing", "sales", "security"}]
+    stages: list[PlanStage] = []
+    used: set[str] = set()
+    if technical:
+        stages.append(PlanStage(0, "technical", technical[:3]))
+        used |= {a["id"] for a in technical[:3]}
+    remaining_business = [a for a in business if a["id"] not in used]
+    if remaining_business:
+        stages.append(PlanStage(len(stages), "business-risk", remaining_business[:3]))
+        used |= {a["id"] for a in remaining_business[:3]}
+    leftovers = [a for a in agents if a["id"] not in used]
+    if leftovers:
+        stages.append(PlanStage(len(stages), "supporting", leftovers[:2]))
+    return stages[:3] or [PlanStage(0, "analysis", agents[:3])]
+
+
+def _trim_instructions(text: str) -> tuple[str, bool]:
+    if len(text) <= MAX_AGENT_INSTRUCTIONS_CHARS:
+        return text, False
+    head = text[:9000]
+    tail = text[-2500:]
+    return head + "\n\n[...source instructions trimmed...]\n\n" + tail, True
+
+
 def build_agent_prompt(agent: dict[str, Any], task_text: str, context_excerpt: str) -> tuple[str, str]:
     source_instructions = (agent.get("instructions") or agent.get("description") or "").strip()
+    source_instructions, trimmed = _trim_instructions(source_instructions)
+    trim_note = "\nSource brief was safely trimmed for prompt size." if trimmed else ""
     system = (
         f"You are the '{agent['name']}' agent from the {agent['division']} division. "
-        "Use the source agent brief below as your primary operating instructions. "
-        f"Source brief:\n{source_instructions or 'General domain expertise.'}\n\n"
-        "Stay within the source persona and respond concisely with concrete, actionable output for the task."
+        "Use the source agent brief below as your primary operating instructions.\n"
+        f"Source brief:\n{source_instructions or 'General domain expertise.'}{trim_note}\n\n"
+        "Stay within the source persona. Produce concrete, checkable work. "
+        "When the user writes in Russian, answer in Russian unless asked otherwise."
     )
-    user = task_text if not context_excerpt else f"{task_text}\n\nAttached context:\n{context_excerpt}"
+    user = task_text if not context_excerpt else f"{task_text}\n\nUpstream/project context:\n{context_excerpt}"
     return system, user
 
 
@@ -90,15 +227,23 @@ async def run_agents_concurrently(
         system, user = build_agent_prompt(agent, task_text, context_excerpt)
         output = await asyncio.to_thread(provider.generate, system, user)
         return StepResult(agent_id=agent["id"], division=agent["division"], role="agent", input_text=user, output_text=output)
-
     return list(await asyncio.gather(*(run_one(a) for a in agents)))
+
+
+async def run_stage(
+    provider: Provider,
+    stage: PlanStage,
+    task_text: str,
+    context_excerpt: str,
+) -> list[StepResult]:
+    return await run_agents_concurrently(provider, stage.agents, task_text, context_excerpt)
 
 
 async def run_critic(provider: Provider, task_text: str, results: list[StepResult]) -> StepResult:
     combined = "\n\n".join(f"[{r.agent_id}]\n{r.output_text}" for r in results)
     system = (
-        "You are a critical reviewer. Check the agent outputs below for gaps, contradictions, "
-        "or missed requirements relative to the original task. Be brief and specific."
+        "You are a critical reviewer. Check the outputs for gaps, contradictions, unsafe assumptions, "
+        "math/unit mistakes, and missed requirements. Be brief and specific. Reply in the user's language."
     )
     user = f"Original task:\n{task_text}\n\nAgent outputs:\n{combined}"
     output = await asyncio.to_thread(provider.generate, system, user)
@@ -108,12 +253,10 @@ async def run_critic(provider: Provider, task_text: str, results: list[StepResul
 async def run_synthesis(provider: Provider, task_text: str, results: list[StepResult], critic: StepResult) -> StepResult:
     combined = "\n\n".join(f"[{r.agent_id}]\n{r.output_text}" for r in results)
     system = (
-        "You are the orchestrator's final synthesizer. Combine the agent outputs and the critic's "
-        "review into one consolidated, well-structured final answer for the user."
+        "You are the final orchestrator. Combine the specialist outputs and critic review into one "
+        "clear final answer. Preserve calculations, assumptions, risks and actionable next steps. "
+        "Reply in the user's language."
     )
-    user = (
-        f"Original task:\n{task_text}\n\nAgent outputs:\n{combined}\n\n"
-        f"Critic review:\n{critic.output_text}"
-    )
+    user = f"Original task:\n{task_text}\n\nAgent outputs:\n{combined}\n\nCritic review:\n{critic.output_text}"
     output = await asyncio.to_thread(provider.generate, system, user)
     return StepResult(agent_id="synthesizer", division="orchestrator", role="synthesis", input_text=user, output_text=output)
