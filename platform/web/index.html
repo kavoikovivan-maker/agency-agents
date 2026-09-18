@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Company Agency</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <div class="eyebrow">AI WORKSPACE</div>
+        <h1>Company Agency</h1>
+      </div>
+      <span id="status" class="status">проверка…</span>
+    </header>
+
+    <section class="hero">
+      <p>Единое рабочее пространство для команды AI-агентов компании.</p>
+      <div class="composer">
+        <textarea placeholder="Опишите задачу для агентства…" disabled></textarea>
+        <button disabled>Отправить</button>
+      </div>
+      <small>Запуск задач будет включён после подключения оркестратора.</small>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title">
+        <h2>Агенты</h2>
+        <span id="count">—</span>
+      </div>
+      <div id="agents" class="agents"></div>
+    </section>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>
