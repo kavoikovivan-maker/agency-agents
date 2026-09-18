@@ -197,6 +197,16 @@ function renderTask(task) {
   $("retryBtn").hidden = !["failed", "cancelled", "interrupted"].includes(task.status);
   $("cancelBtn").hidden = !["queued", "running"].includes(task.status);
 
+  const routingEvents = task.events.filter((e) => e.level === "routing");
+  $("routingReasonsList").innerHTML = routingEvents.length
+    ? routingEvents.map((e) => `<div class="event-row">${escapeHtml(e.message)}</div>`).join("")
+    : '<div class="empty">Причины выбора появятся после маршрутизации задачи.</div>';
+
+  const planEvents = task.events.filter((e) => e.level === "plan" || e.level === "stage");
+  $("executionPlanList").innerHTML = planEvents.length
+    ? planEvents.map((e) => `<div class="event-row"><span class="tag">${escapeHtml(e.level)}</span> ${escapeHtml(e.message)}</div>`).join("")
+    : '<div class="empty">План появится после запуска задачи.</div>';
+
   const agentRuns = task.runs.filter((r) => r.role === "agent");
   $("agentsUsedCount").textContent = agentRuns.length;
   $("agentsUsedList").innerHTML = task.runs
