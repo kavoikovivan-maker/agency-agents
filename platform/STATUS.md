@@ -1,62 +1,52 @@
 # Platform status
 
 ## Working
-- Agent catalog loader reads all live markdown source agents from the repository
-  source divisions defined in `divisions.json`, excluding generated/non-source
-  directories such as `integrations/`, `strategy/`, `examples/`, and `scripts/`.
-- Catalog entries retain the full markdown body after frontmatter as
-  `instructions`, and the runtime agent prompt uses that real body instead of a
-  generic name/description-only wrapper.
-- Orchestrator classification is multilingual-aware for English and Russian, with
-  deterministic offline keyword fallback for natural-language routing.
-- SQLite persistence for projects, conversations, messages, tasks, task runs,
-  artifacts and events (SQLAlchemy models in `app/models.py`).
-- Recoverable async task runner: statuses `queued/running/completed/failed/
-  cancelled/interrupted`; a process restart marks any task stuck in `running`
-  as `interrupted` (recoverable via `/api/tasks/{id}/retry`), and each retry
-  increments `attempt`.
-- LLM provider layer: deterministic `mock` provider (default, no key needed),
-  plus `openai` and `groq` OpenAI-compatible adapters selected via
-  `MODEL_PROVIDER` + the relevant API key env var.
-- File uploads: extension + size validation, filename sanitization, path
-  traversal guard, and best-effort text extraction for txt/md/csv/json/pdf/
-  docx/xlsx, attached to task context.
-- Web UI: dark graphite SPA — project sidebar, task composer, live task
-  progress with status dots, collapsed "agents used" panel, final answer,
-  event log, task history, file list, and a settings modal showing the
-  active provider/model. Responsive down to 390px.
-- REST API covering every endpoint required by `TASK.md`, plus `GET
-  /api/tasks` (listing) and `POST /api/auth/login` (optional single-user
-  password mode).
-- Docker: `docker compose up --build` starts the full app with a persistent
-  named volume for `/data` (SQLite db + uploads) and a container healthcheck.
-- Automated tests (pytest, mock provider, no network): catalog loading/count,
-  SQLite persistence across sessions, multilingual routing, orchestrator
-  classification/selection, and the full task lifecycle through the HTTP API.
-  The backend suite currently passes: 18 tests.
+- The source agent catalog is loaded from `divisions.json`; generated/non-source
+  directories such as `integrations/` and `strategy/` are excluded.
+- Every runtime agent uses the real markdown body from its source file as its
+  operating instructions, with a prompt-size guard for unusually large files.
+- Multilingual routing supports English and Russian, including beverage/company
+  tasks (formulation/production, costing, procurement, quality, marketing).
+- Selected agents include a persisted human-readable routing reason and score.
+- The orchestrator creates a bounded staged plan (technical/business/supporting),
+  passes upstream outputs into later stages, then runs critic + final synthesis.
+- SQLite persists projects, conversations, tasks, task runs, artifacts and events.
+- Retry starts a clean execution attempt without duplicating stale TaskRun rows;
+  uploaded artifacts remain attached and are not duplicated.
+- Interrupted running tasks are marked recoverable on process restart.
+- LLM provider layer supports deterministic `mock`, OpenAI-compatible endpoints,
+  and Groq-compatible endpoints.
+- Real provider calls have configurable timeout, bounded retry and exponential
+  backoff for transient network/server failures; 4xx configuration/auth errors
+  are not automatically retried.
+- File uploads validate extension/size/path and extract text from txt/md/csv/json,
+  PDF, DOCX and XLSX where a text layer exists.
+- Web UI shows provider/model truth (including MOCK mode), task progress, routing
+  reasons, staged execution plan, agents used, final answer, files and history.
+- REST API covers projects, conversations, tasks, retry/cancel, files, runtime
+  settings and optional single-user login.
+- `docker compose up --build` starts the complete app with persistent storage and
+  a healthcheck.
+- GitHub Actions validates tests, Docker build/start and `/api/health` on every
+  push to `company-agency-platform`.
+- Backend suite currently contains 20 tests, including an end-to-end Russian
+  beverage task that must select finance plus a relevant technical/product role,
+  expose routing/plan/stage events, and return a final answer.
 
-## Mocked / simplified
-- LLM output is the deterministic mock provider unless `OPENAI_API_KEY` or
-  `GROQ_API_KEY` is configured — this is intentional per the task spec so the
-  whole flow works without a paid key.
-- Agent-to-agent handoff is still implemented as: agents run concurrently → critic
-  reviews all outputs → synthesizer produces the final answer. The deeper
-  planner/dependency handoff flow from `REVIEW_NEXT.md` is not yet implemented.
-- Single-user auth is a lightweight in-memory token issued by `/api/auth/
-  login`; there is no multi-user account system (matches the "single-user
-  MVP is acceptable" requirement).
-- OCR is intentionally not implemented (per instructions); PDF/DOCX/XLSX text
-  extraction is text-layer only.
+## Runtime modes
+- With no API key the whole product runs in deterministic MOCK mode. This is for
+  functional verification only and is visibly labelled in the UI.
+- For real AI responses set `MODEL_PROVIDER=groq` + `GROQ_API_KEY`, or
+  `MODEL_PROVIDER=openai` + `OPENAI_API_KEY`, then restart Docker.
 
-## Known remaining limitations
-- Multi-stage dependency-based handoff planning and worker chaining are not yet
-  implemented; the runtime still uses the fast-path parallel → critic → synth.
-- Cancellation/restart/retry tests for active provider calls, mid-run restarts,
-  stale artifact deduplication, and provider timeout recovery still need the
-  full review-level validation pass.
-- The in-memory auth token store in `security.py` is per-process; if
-  `APP_PASSWORD` is set, restarting the container invalidates sessions (users
-  just log in again — acceptable for local/internal use).
-- No pagination on `/api/tasks` or `/api/files` listings; fine at MVP scale.
-- No automated browser/UI tests (viewport behavior was checked via CSS media
-  queries down to 390px, not with a headless browser).
+## Known limitations
+- Cancellation is cooperative: an in-flight synchronous provider HTTP request is
+  allowed to finish, then cancellation is honored before the next stage.
+- Authentication is intentionally single-user/local for this version; sessions
+  are in-memory and a container restart requires logging in again if
+  `APP_PASSWORD` is enabled.
+- OCR is intentionally not included; scanned/image-only PDFs need a separate OCR
+  pipeline.
+- No pagination on task/file listings yet; suitable for current internal/MVP use.
+- Browser UI behavior is covered by responsive implementation and CI backend/
+  Docker checks, not a full headless-browser end-to-end suite.
