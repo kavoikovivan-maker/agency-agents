@@ -1,0 +1,57 @@
+name: Company Agency CI
+
+on:
+  push:
+    branches:
+      - company-agency-platform
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install backend dependencies
+        working-directory: platform/backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run backend tests
+        working-directory: platform/backend
+        run: python -m pytest -q
+
+      - name: Build and start Docker Compose
+        working-directory: platform
+        run: |
+          docker compose up --build -d
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8080/api/health >/tmp/health.json; then
+              cat /tmp/health.json
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose ps
+          docker compose logs --tail=200 agency
+          exit 1
+
+      - name: Docker status
+        if: always()
+        working-directory: platform
+        run: |
+          docker compose ps || true
+          docker compose logs --tail=100 agency || true
+
+      - name: Stop stack
+        if: always()
+        working-directory: platform
+        run: docker compose down -v || true
