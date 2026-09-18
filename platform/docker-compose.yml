@@ -1,0 +1,8 @@
+services:
+  agency:
+    build:
+      context: ..
+      dockerfile: platform/Dockerfile
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
