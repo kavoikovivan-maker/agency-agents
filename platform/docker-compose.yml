@@ -18,6 +18,9 @@ services:
       - APP_PASSWORD=${APP_PASSWORD:-}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}
       - MAX_UPLOAD_MB=${MAX_UPLOAD_MB:-20}
+      - MAX_AGENTS_PER_TASK=${MAX_AGENTS_PER_TASK:-6}
+      - PROVIDER_TIMEOUT_SECONDS=${PROVIDER_TIMEOUT_SECONDS:-60}
+      - PROVIDER_MAX_RETRIES=${PROVIDER_MAX_RETRIES:-2}
     volumes:
       - agency-data:/data
     healthcheck:
