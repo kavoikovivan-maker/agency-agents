@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -9,21 +10,28 @@ from .catalog import catalog
 from .providers.base import Provider
 
 CLASSES = {
-    "engineering": ["code", "bug", "api", "backend", "frontend", "database", "deploy", "infrastructure", "test"],
-    "design": ["design", "ui", "ux", "visual", "brand", "persona"],
-    "marketing": ["marketing", "campaign", "ads", "seo", "content", "growth"],
-    "sales": ["sales", "lead", "deal", "pipeline", "outreach"],
-    "finance": ["finance", "budget", "forecast", "invoice", "revenue"],
-    "product": ["product", "roadmap", "feature", "spec", "requirement"],
-    "research": ["research", "analysis", "study", "survey"],
-    "support": ["support", "ticket", "customer", "helpdesk"],
-    "security": ["security", "vulnerability", "audit", "compliance"],
+    "engineering": ["code", "bug", "api", "backend", "frontend", "database", "deploy", "infrastructure", "test", "архитект", "код", "api", "база", "дебаг", "сервис"],
+    "design": ["design", "ui", "ux", "visual", "brand", "persona", "дизайн", "интерфейс", "ux", "ui"],
+    "marketing": ["marketing", "campaign", "ads", "seo", "content", "growth", "маркет", "кампейн", "seo", "контент", "реклама"],
+    "sales": ["sales", "lead", "deal", "pipeline", "outreach", "продаж", "лид", "сделк", "воркфлоу"],
+    "finance": ["finance", "budget", "forecast", "invoice", "revenue", "финанс", "бюджет", "себестоимост", "стоимост", "доход"],
+    "product": ["product", "roadmap", "feature", "spec", "requirement", "продукт", "фича", "roadmap", "специфик", "требован"],
+    "research": ["research", "analysis", "study", "survey", "исслед", "анализ", "опрос", "деталь"],
+    "support": ["support", "ticket", "customer", "helpdesk", "поддержк", "тикет", "клиент"],
+    "security": ["security", "vulnerability", "audit", "compliance", "безопасност", "аудит", "комплаенс"],
     "general": [],
 }
 
 
+def _normalize_text(text: str) -> str:
+    lowered = text.lower()
+    lowered = lowered.replace("ё", "е")
+    lowered = re.sub(r"[^a-zа-я0-9\s]", " ", lowered)
+    return " ".join(lowered.split())
+
+
 def classify(task_text: str) -> str:
-    lowered = task_text.lower()
+    lowered = _normalize_text(task_text)
     best_label, best_score = "general", 0
     for label, words in CLASSES.items():
         score = sum(1 for w in words if w in lowered)
@@ -37,13 +45,13 @@ def _score_agent(agent: dict[str, Any], task_tokens: set[str]) -> int:
 
 
 def select_agents(task_text: str, max_agents: int = 6) -> list[dict[str, Any]]:
-    tokens = {tok for tok in task_text.lower().replace("-", " ").split() if len(tok) > 2}
+    normalized = _normalize_text(task_text)
+    tokens = {tok for tok in normalized.split() if len(tok) > 2}
     scored = [(_score_agent(a, tokens), a) for a in catalog()]
     scored.sort(key=lambda pair: pair[0], reverse=True)
 
     selected = [a for score, a in scored if score > 0][:max_agents]
     if not selected:
-        # deterministic fallback: a small generalist set so the flow always produces output
         fallback_ids = {"engineering-backend-architect", "product-feedback-synthesizer", "design-ux-researcher"}
         selected = [a for a in catalog() if a["id"] in fallback_ids][: max(1, min(3, max_agents))]
     if not selected:
@@ -61,10 +69,12 @@ class StepResult:
 
 
 def build_agent_prompt(agent: dict[str, Any], task_text: str, context_excerpt: str) -> tuple[str, str]:
+    source_instructions = (agent.get("instructions") or agent.get("description") or "").strip()
     system = (
         f"You are the '{agent['name']}' agent from the {agent['division']} division. "
-        f"Focus: {agent['description'] or 'general expertise for this division'}. "
-        "Respond concisely with concrete, actionable output for the given task."
+        "Use the source agent brief below as your primary operating instructions. "
+        f"Source brief:\n{source_instructions or 'General domain expertise.'}\n\n"
+        "Stay within the source persona and respond concisely with concrete, actionable output for the task."
     )
     user = task_text if not context_excerpt else f"{task_text}\n\nAttached context:\n{context_excerpt}"
     return system, user

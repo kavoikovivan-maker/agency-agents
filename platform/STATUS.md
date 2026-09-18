@@ -1,13 +1,16 @@
 # Platform status
 
 ## Working
-- Agent catalog loader reads all existing markdown agents from the repository
-  divisions (read-only, count matches `find <division> -name '*.md'`).
+- Agent catalog loader reads all live markdown source agents from the repository
+  source divisions defined in `divisions.json`, excluding generated/non-source
+  directories such as `integrations/`, `strategy/`, `examples/`, and `scripts/`.
+- Catalog entries retain the full markdown body after frontmatter as
+  `instructions`, and the runtime agent prompt uses that real body instead of a
+  generic name/description-only wrapper.
+- Orchestrator classification is multilingual-aware for English and Russian, with
+  deterministic offline keyword fallback for natural-language routing.
 - SQLite persistence for projects, conversations, messages, tasks, task runs,
   artifacts and events (SQLAlchemy models in `app/models.py`).
-- Orchestrator: keyword-based classification, 1-6 agent selection from the
-  live catalog, concurrent agent execution, a critic/review step, and a final
-  synthesis step — all persisted per task.
 - Recoverable async task runner: statuses `queued/running/completed/failed/
   cancelled/interrupted`; a process restart marks any task stuck in `running`
   as `interrupted` (recoverable via `/api/tasks/{id}/retry`), and each retry
@@ -28,17 +31,17 @@
 - Docker: `docker compose up --build` starts the full app with a persistent
   named volume for `/data` (SQLite db + uploads) and a container healthcheck.
 - Automated tests (pytest, mock provider, no network): catalog loading/count,
-  SQLite persistence across sessions, orchestrator classification/selection,
-  and the full task lifecycle (create → complete → forced failure → retry →
-  complete) through the HTTP API. All 15 tests pass.
+  SQLite persistence across sessions, multilingual routing, orchestrator
+  classification/selection, and the full task lifecycle through the HTTP API.
+  The backend suite currently passes: 18 tests.
 
 ## Mocked / simplified
 - LLM output is the deterministic mock provider unless `OPENAI_API_KEY` or
   `GROQ_API_KEY` is configured — this is intentional per the task spec so the
   whole flow works without a paid key.
-- Agent-to-agent handoff is implemented as: agents run concurrently → critic
-  reviews all outputs → synthesizer produces the final answer. There is no
-  deeper multi-round negotiation between agents (out of scope for the MVP).
+- Agent-to-agent handoff is still implemented as: agents run concurrently → critic
+  reviews all outputs → synthesizer produces the final answer. The deeper
+  planner/dependency handoff flow from `REVIEW_NEXT.md` is not yet implemented.
 - Single-user auth is a lightweight in-memory token issued by `/api/auth/
   login`; there is no multi-user account system (matches the "single-user
   MVP is acceptable" requirement).
@@ -46,6 +49,11 @@
   extraction is text-layer only.
 
 ## Known remaining limitations
+- Multi-stage dependency-based handoff planning and worker chaining are not yet
+  implemented; the runtime still uses the fast-path parallel → critic → synth.
+- Cancellation/restart/retry tests for active provider calls, mid-run restarts,
+  stale artifact deduplication, and provider timeout recovery still need the
+  full review-level validation pass.
 - The in-memory auth token store in `security.py` is per-process; if
   `APP_PASSWORD` is set, restarting the container invalidates sessions (users
   just log in again — acceptable for local/internal use).
