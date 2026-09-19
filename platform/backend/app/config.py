@@ -40,7 +40,9 @@ class Settings:
         self.groq_model = os.environ.get("GROQ_MODEL", "openai/gpt-oss-20b").strip()
 
         self.provider_timeout_seconds = _env_int("PROVIDER_TIMEOUT_SECONDS", 60)
-        self.provider_max_retries = _env_int("PROVIDER_MAX_RETRIES", 2)
+        self.provider_max_retries = _env_int("PROVIDER_MAX_RETRIES", 4)
+        self.provider_max_concurrency = max(1, _env_int("PROVIDER_MAX_CONCURRENCY", 1))
+        self.provider_max_retry_wait_seconds = max(1, _env_int("PROVIDER_MAX_RETRY_WAIT_SECONDS", 90))
 
     def ensure_dirs(self) -> None:
         self.data_dir.mkdir(parents=True, exist_ok=True)
