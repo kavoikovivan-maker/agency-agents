@@ -14,7 +14,7 @@ services:
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
       - GROQ_API_KEY=${GROQ_API_KEY:-}
       - GROQ_BASE_URL=${GROQ_BASE_URL:-https://api.groq.com/openai/v1}
-      - GROQ_MODEL=${GROQ_MODEL:-llama-3.1-8b-instant}
+      - GROQ_MODEL=${GROQ_MODEL:-openai/gpt-oss-20b}
       - APP_PASSWORD=${APP_PASSWORD:-}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}
       - MAX_UPLOAD_MB=${MAX_UPLOAD_MB:-20}
