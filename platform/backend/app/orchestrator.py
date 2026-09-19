@@ -68,8 +68,10 @@ def detect_domains(task_text: str) -> set[str]:
 
 
 def _task_tokens(task_text: str) -> set[str]:
-    return {\n        tok for tok in _normalize_text(task_text).split()\n        if len(tok) > 2 and any(ch.isalpha() for ch in tok)\n    }
-
+    return {
+        tok for tok in _normalize_text(task_text).split()
+        if len(tok) > 2 and any(ch.isalpha() for ch in tok)
+    }
 
 def _score_agent(agent: dict[str, Any], task_tokens: set[str], domains: set[str]) -> int:
     score = len(agent["keywords"] & task_tokens)
