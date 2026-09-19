@@ -44,6 +44,8 @@ def test_beverage_task_selects_technical_and_finance_roles_with_reasons():
     assert divisions.intersection({"engineering", "product", "specialized"})
     assert all(a.get("routing_reason") for a in agents)
     assert all(a.get("routing_mode") for a in agents)
+    assert "study-abroad-advisor" not in {a["id"] for a in agents}
+    assert "security-threat-intelligence-analyst" not in {a["id"] for a in agents}
 
     plan = build_plan(task, agents)
     assert 1 <= len(plan) <= 3
