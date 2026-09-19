@@ -49,11 +49,31 @@ jobs:
       - name: Run real Russian beverage task
         working-directory: platform
         run: |
-          PROJECT=$(curl -fsS -X POST http://127.0.0.1:8080/api/projects             -H 'Content-Type: application/json'             -d '{"name":"Real AI smoke"}')
+          PROJECT=$(curl -fsS -X POST http://127.0.0.1:8080/api/projects \
+            -H 'Content-Type: application/json' \
+            --data-binary '{"name":"Real AI smoke"}')
           PROJECT_ID=$(python -c 'import json,sys; print(json.load(sys.stdin)["id"])' <<<"$PROJECT")
-          TASK=$(curl -fsS -X POST http://127.0.0.1:8080/api/tasks             -H 'Content-Type: application/json'             -d "{"project_id":"$PROJECT_ID","input_text":"Рассчитай структуру работы по рецептуре молочного лимонада на 1000 литров, Брикс 4.8-4.9, проверь себестоимость и риски производства. Не выдумывай неизвестные исходные данные."}")
+          export PROJECT_ID
+
+          python - <<'PY' >/tmp/task.json
+          import json, os
+          payload = {
+              "project_id": os.environ["PROJECT_ID"],
+              "input_text": (
+                  "Рассчитай структуру работы по рецептуре молочного лимонада на 1000 литров, "
+                  "Брикс 4.8-4.9, проверь себестоимость и риски производства. "
+                  "Не выдумывай неизвестные исходные данные."
+              ),
+          }
+          print(json.dumps(payload, ensure_ascii=False))
+          PY
+
+          TASK=$(curl -fsS -X POST http://127.0.0.1:8080/api/tasks \
+            -H 'Content-Type: application/json' \
+            --data-binary @/tmp/task.json)
           TASK_ID=$(python -c 'import json,sys; print(json.load(sys.stdin)["id"])' <<<"$TASK")
           export TASK_ID
+
           python - <<'PY'
           import json, os, time, urllib.request
           task_id=os.environ["TASK_ID"]
@@ -82,5 +102,3 @@ jobs:
         if: always()
         working-directory: platform
         run: docker compose down -v || true
-
-# rerun-after-groq-secret
