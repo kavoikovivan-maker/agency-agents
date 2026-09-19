@@ -102,3 +102,5 @@ jobs:
         if: always()
         working-directory: platform
         run: docker compose down -v || true
+
+# rerun-current-groq-model
