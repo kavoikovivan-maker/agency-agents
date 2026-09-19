@@ -1,0 +1,84 @@
+name: Company Agency Real AI Smoke
+
+on:
+  push:
+    branches:
+      - company-agency-platform
+    paths:
+      - ".github/workflows/company-agency-real-ai.yml"
+  workflow_dispatch:
+
+jobs:
+  real-ai-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      MODEL_PROVIDER: groq
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify Groq secret exists
+        run: |
+          if [ -z "$GROQ_API_KEY" ]; then
+            echo "GROQ_API_KEY repository secret is missing"
+            exit 2
+          fi
+
+      - name: Start Company Agency with real Groq
+        working-directory: platform
+        run: |
+          docker compose up --build -d
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:8080/api/health >/tmp/health.json; then
+              cat /tmp/health.json
+              break
+            fi
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:8080/api/settings/runtime >/tmp/runtime.json
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/runtime.json'))
+          assert d["mock_mode"] is False, d
+          assert d["provider"] == "groq", d
+          print("real provider:", d["provider"], d["model"])
+          PY
+
+      - name: Run real Russian beverage task
+        working-directory: platform
+        run: |
+          PROJECT=$(curl -fsS -X POST http://127.0.0.1:8080/api/projects             -H 'Content-Type: application/json'             -d '{"name":"Real AI smoke"}')
+          PROJECT_ID=$(python -c 'import json,sys; print(json.load(sys.stdin)["id"])' <<<"$PROJECT")
+          TASK=$(curl -fsS -X POST http://127.0.0.1:8080/api/tasks             -H 'Content-Type: application/json'             -d "{"project_id":"$PROJECT_ID","input_text":"Рассчитай структуру работы по рецептуре молочного лимонада на 1000 литров, Брикс 4.8-4.9, проверь себестоимость и риски производства. Не выдумывай неизвестные исходные данные."}")
+          TASK_ID=$(python -c 'import json,sys; print(json.load(sys.stdin)["id"])' <<<"$TASK")
+          export TASK_ID
+          python - <<'PY'
+          import json, os, time, urllib.request
+          task_id=os.environ["TASK_ID"]
+          last=None
+          for _ in range(120):
+              with urllib.request.urlopen(f"http://127.0.0.1:8080/api/tasks/{task_id}") as r:
+                  last=json.load(r)
+              if last["status"] in {"completed","failed","cancelled"}:
+                  break
+              time.sleep(2)
+          print("status:", last["status"])
+          print("classification:", last.get("classification"))
+          print("runs:", [(x["role"], x["division"], x["agent_id"], x["status"]) for x in last.get("runs",[])])
+          print("events:", [(x["level"], x["message"][:160]) for x in last.get("events",[])])
+          print("final:", (last.get("final_answer") or "")[:1200])
+          assert last["status"] == "completed", last.get("error_message")
+          assert len(last.get("final_answer") or "") > 50
+          PY
+
+      - name: Logs on failure
+        if: failure()
+        working-directory: platform
+        run: docker compose logs --tail=200 || true
+
+      - name: Stop stack
+        if: always()
+        working-directory: platform
+        run: docker compose down -v || true
