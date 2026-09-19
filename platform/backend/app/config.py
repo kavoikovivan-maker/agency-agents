@@ -37,7 +37,7 @@ class Settings:
 
         self.groq_api_key = os.environ.get("GROQ_API_KEY", "").strip()
         self.groq_base_url = os.environ.get("GROQ_BASE_URL", "https://api.groq.com/openai/v1").strip()
-        self.groq_model = os.environ.get("GROQ_MODEL", "llama-3.1-8b-instant").strip()
+        self.groq_model = os.environ.get("GROQ_MODEL", "openai/gpt-oss-20b").strip()
 
         self.provider_timeout_seconds = _env_int("PROVIDER_TIMEOUT_SECONDS", 60)
         self.provider_max_retries = _env_int("PROVIDER_MAX_RETRIES", 2)
