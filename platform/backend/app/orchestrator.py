@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from .catalog import catalog
+from .config import settings
 from .providers.base import Provider
 
 MAX_AGENT_INSTRUCTIONS_CHARS = 12000
@@ -28,7 +29,7 @@ DOMAIN_DIVISION_BOOSTS = {
     "beverage": {"product": 5, "engineering": 5, "specialized": 4, "research": 2},
     "finance": {"finance": 7, "product": 2},
     "procurement": {"finance": 4, "project-management": 3, "specialized": 3, "sales": 1},
-    "quality": {"security": 4, "research": 3, "specialized": 3, "engineering": 2},
+    "quality": {"specialized": 5, "research": 4, "engineering": 3, "product": 2},
     "marketing": {"marketing": 6, "sales": 3, "product": 2},
 }
 
@@ -67,7 +68,7 @@ def detect_domains(task_text: str) -> set[str]:
 
 
 def _task_tokens(task_text: str) -> set[str]:
-    return {tok for tok in _normalize_text(task_text).split() if len(tok) > 2}
+    return {\n        tok for tok in _normalize_text(task_text).split()\n        if len(tok) > 2 and any(ch.isalpha() for ch in tok)\n    }
 
 
 def _score_agent(agent: dict[str, Any], task_tokens: set[str], domains: set[str]) -> int:
@@ -97,7 +98,7 @@ def select_agents_with_reasons(task_text: str, max_agents: int = 6) -> list[dict
     if "procurement" in domains:
         required_divisions += ["project-management", "finance"]
     if "quality" in domains:
-        required_divisions += ["security", "research"]
+        required_divisions += ["research", "specialized"]
     if "marketing" in domains:
         required_divisions += ["marketing"]
 
@@ -223,10 +224,14 @@ async def run_agents_concurrently(
     task_text: str,
     context_excerpt: str,
 ) -> list[StepResult]:
+    semaphore = asyncio.Semaphore(settings.provider_max_concurrency)
+
     async def run_one(agent: dict[str, Any]) -> StepResult:
         system, user = build_agent_prompt(agent, task_text, context_excerpt)
-        output = await asyncio.to_thread(provider.generate, system, user)
+        async with semaphore:
+            output = await asyncio.to_thread(provider.generate, system, user)
         return StepResult(agent_id=agent["id"], division=agent["division"], role="agent", input_text=user, output_text=output)
+
     return list(await asyncio.gather(*(run_one(a) for a in agents)))
 
 
