@@ -138,3 +138,67 @@ button:focus-visible,.file-btn:focus-visible,summary:focus-visible{outline:2px s
  .department-tile{padding:11px 9px}
 }
 @media(prefers-reduced-motion:reduce){.department-led.busy{animation:none}}
+
+/* Approved graphite iPhone layout; all controls remain native accessible buttons. */
+html{scroll-behavior:smooth}
+body{background:radial-gradient(ellipse 70% 350px at 50% -30px,#292d32 0%,#131517 75%,#0f1113 100%) fixed}
+.main{max-width:980px;padding-top:35px}
+.topbar{align-items:center;min-height:92px;gap:16px}
+.top-project{flex:1;min-width:0}
+.eyebrow,.section-eyebrow{font-size:10px;letter-spacing:.27em;color:#a5aab1;margin:0 0 10px}
+.topbar h1{font-size:clamp(20px,4vw,29px);line-height:1.16;margin:0}
+.runtime-status{display:flex;align-items:center;flex-wrap:wrap;justify-content:flex-end;gap:8px;background:linear-gradient(135deg,#292d32,#181b1e);border:1px solid #41454c;border-radius:20px;padding:11px 15px;box-shadow:inset 0 1px 0 #ffffff17,0 8px 25px #0004}
+.runtime-status .status{font-size:11px}
+.runtime-status .status.ok:first-child:before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:8px;background:#7fe3af;box-shadow:0 0 8px #66dba0}
+.composer-card,.panel,.task-view>*{background:linear-gradient(145deg,#24282d,#191c20 65%);border:1px solid #51565d;border-radius:25px;box-shadow:inset 0 1px 0 #ffffff24,0 16px 36px #0005}
+.composer-card{padding:24px;margin-bottom:15px}
+#taskInput{background:#111316;border:1px solid #3b4149;color:#f0f1f3;font-size:15px;line-height:1.5;border-radius:18px;min-height:140px;resize:vertical;padding:17px}
+#taskInput:focus{outline:1px solid #a2acb7;outline-offset:0}
+.composer-row{margin-top:15px;gap:13px}
+.file-btn,.icon-btn,.primary-btn,.quick-tile,.nav-tab{transition:background .16s ease,transform .12s ease,border-color .16s ease;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.file-btn,.icon-btn,.quick-tile{background:linear-gradient(145deg,#373c42,#1b1e22);border:1px solid #62676f;box-shadow:inset 0 1px 0 #ffffff34,0 7px 18px #0006;color:#e4e7e9}
+.file-btn{display:inline-flex;align-items:center;min-height:45px;padding:9px 16px;border-radius:15px}
+.primary-btn{background:linear-gradient(145deg,#555f6d,#39414d);border:1px solid #737d89;box-shadow:inset 0 1px 0 #ffffff46,0 7px 17px #0005;min-height:46px;border-radius:15px;font-size:14px}
+.file-btn:active,.icon-btn:active,.primary-btn:active,.quick-tile:active,.nav-tab:active{transform:translateY(2px);box-shadow:inset 0 2px 8px #0006}
+.quick-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin:17px 0 18px}
+.quick-tile{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;min-height:90px;border-radius:20px;cursor:pointer;font:inherit;font-size:12px}
+.quick-symbol{font-size:29px;line-height:1;color:#e2e5e8}
+.quick-led{position:absolute;right:10px;top:9px;width:7px;height:7px;border-radius:50%;background:#a1a4a8;box-shadow:0 0 7px #b6b9bf66}
+.quick-tile:nth-child(2) .quick-led{background:#76b9f5;box-shadow:0 0 9px #76b9f5}
+.quick-tile:nth-child(3) .quick-led{background:#dbc09d;box-shadow:0 0 8px #dbc09d}
+.department-panel{margin:12px 0 16px}
+.panel-title h2{font-size:15px;line-height:1.3}
+.department-lights{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+.agent-card,.file-item{background:linear-gradient(145deg,#292d31,#171a1d);border-color:#40464d;box-shadow:inset 0 1px 0 #ffffff1e}
+.agent-card{min-height:53px;align-items:center;border-radius:15px}
+.agent-card strong{overflow-wrap:anywhere}
+.task-view{scroll-margin-top:15px}
+#composerPanel,#agentsPanel,#filesPanel,#departmentPanel{scroll-margin-top:18px}
+.bottom-nav{display:none}
+@media(min-width:901px){.main{padding-bottom:70px}}
+@media(max-width:900px){
+ .app{display:block}
+ .main{padding:22px 15px 115px}
+ .topbar{display:grid;grid-template-columns:45px 1fr;align-items:center;column-gap:12px;row-gap:15px;margin-bottom:21px}
+ .topbar .icon-btn{grid-column:1;grid-row:1;width:45px;height:45px}
+ .top-project{grid-column:2;grid-row:1}
+ .runtime-status{grid-column:1/-1;justify-content:flex-start;min-width:0;padding:10px 14px}
+ .runtime-status .status{white-space:normal}
+ .sidebar{z-index:50;width:min(315px,86vw);padding-bottom:calc(env(safe-area-inset-bottom) + 22px);box-shadow:16px 0 50px #0009}
+ .sidebar.open:after{content:""}
+ .bottom-nav{position:fixed;z-index:35;left:12px;right:12px;bottom:max(10px,env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(4,1fr);gap:3px;background:linear-gradient(145deg,#30343a,#171a1e);border:1px solid #60656e;border-radius:24px;padding:7px;box-shadow:inset 0 1px 0 #ffffff40,0 14px 40px #000b}
+ .nav-tab{background:none;border:1px solid transparent;border-radius:17px;min-height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font:inherit;color:#a5aab2;cursor:pointer}
+ .nav-tab span{font-size:24px;line-height:1.1}
+ .nav-tab small{font-size:10px}
+ .nav-tab.active{color:#fff;background:linear-gradient(145deg,#454b53,#25292e);border-color:#5c626b;box-shadow:inset 0 1px 0 #ffffff3b,0 3px 14px #0006}
+}
+@media(max-width:600px){
+ .main{padding:22px 12px 112px}
+ .composer-card,.panel,.task-view>*{padding:16px;border-radius:23px}
+ .composer-row{flex-wrap:wrap}
+ .primary-btn{width:100%}
+ .quick-nav{gap:7px}
+ .quick-tile{min-height:78px;border-radius:17px;font-size:11px}
+ .quick-symbol{font-size:25px}
+ .department-lights{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
