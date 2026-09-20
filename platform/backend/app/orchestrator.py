@@ -64,7 +64,7 @@ DIVISION_HINTS = {
     "spatial-computing": ("дополненн", "виртуальн",
                           "spatial computing", "visionos", "ar vr"),
     "specialized": ("цепочку поставок", "закуп", "поставщик", "supply chain"),
-    "support": ("поддержка клиент", "служба поддержки", "обращения клиент", "helpdesk"),
+    "support": ("поддержк", "обращени клиент", "helpdesk"),
     "testing": ("тестировани", "автотест", "регрессионный тест", "quality assurance"),
 }
 
