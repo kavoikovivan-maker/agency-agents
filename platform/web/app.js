@@ -85,6 +85,7 @@ async function selectProject(projectId) {
   state.currentProjectId = projectId;
   const project = state.projects.find((p) => p.id === projectId);
   $("projectName").textContent = project ? project.name : "Проект";
+  $("projectSelectBtn").textContent = project ? "Сменить проект ›" : "Выбрать или создать проект ›";
   renderProjectList();
   closeSidebar();
   await Promise.all([loadTaskHistory(), loadFiles()]);
@@ -386,6 +387,7 @@ function wireEvents() {
     if ($("sidebar").classList.contains("open")) closeSidebar();
     else openSidebar();
   });
+  $("projectSelectBtn").addEventListener("click", openProjects);
   $("quickHistory").addEventListener("click", openHistory);
   $("quickAgents").addEventListener("click", () => { activateNav("navAgents"); scrollToPanel("agentsPanel"); });
   $("quickFiles").addEventListener("click", () => scrollToPanel("filesPanel"));
