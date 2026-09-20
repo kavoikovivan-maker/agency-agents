@@ -23,8 +23,12 @@ def test_catalog_uses_divisions_json_and_excludes_generated_dirs():
 def test_prompt_includes_real_agent_body_and_not_just_frontmatter():
     agent = next(item for item in catalog() if item["id"] == "engineering-backend-architect")
     system, _ = build_agent_prompt(agent, "Design a resilient API", "")
-    assert "zero-downtime schema migrations" in system.lower()
-    assert "system architecture specification" in system.lower()
+    assert "zero-downtime schema migrations" in agent["instructions"].lower()
+    assert "system architecture specification" in agent["instructions"].lower()
+    excerpt, trimmed = _trim_instructions(agent["instructions"])
+    assert trimmed is True
+    assert excerpt in system
+    assert len(excerpt) <= MAX_AGENT_INSTRUCTIONS_CHARS
 
 
 def test_russian_routing_uses_multilingual_keywords():
