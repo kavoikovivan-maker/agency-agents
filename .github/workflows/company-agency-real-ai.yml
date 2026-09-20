@@ -118,3 +118,5 @@ jobs:
 # rerun-after-ci-green
 
 # Full handoff smoke: iPhone UI and routing
+
+# rerun after bounded Groq handoff fix 2026-09-20
