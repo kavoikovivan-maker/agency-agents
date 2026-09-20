@@ -359,12 +359,14 @@ function scrollToPanel(id) {
 }
 
 function openSidebar() {
+  $("sidebarBackdrop").hidden = false;
   $("sidebar").classList.add("open");
   $("menuBtn").setAttribute("aria-expanded", "true");
 }
 
 function closeSidebar() {
   $("sidebar").classList.remove("open");
+  $("sidebarBackdrop").hidden = true;
   $("menuBtn").setAttribute("aria-expanded", "false");
 }
 
@@ -382,6 +384,9 @@ function openProjects() {
 
 function wireEvents() {
   $("newProjectBtn").addEventListener("click", createProject);
+  $("createProjectSidebarBtn").addEventListener("click", createProject);
+  $("closeSidebarBtn").addEventListener("click", closeSidebar);
+  $("sidebarBackdrop").addEventListener("click", closeSidebar);
   $("submitBtn").addEventListener("click", submitTask);
   $("retryBtn").addEventListener("click", retryTask);
   $("cancelBtn").addEventListener("click", cancelTask);
