@@ -5,6 +5,7 @@ const state = {
   currentTaskId: null,
   pollTimer: null,
   pendingFile: null,
+  activeNav: "navHome",
 };
 
 const $ = (id) => document.getElementById(id);
@@ -85,6 +86,7 @@ async function selectProject(projectId) {
   const project = state.projects.find((p) => p.id === projectId);
   $("projectName").textContent = project ? project.name : "Проект";
   renderProjectList();
+  closeSidebar();
   await Promise.all([loadTaskHistory(), loadFiles()]);
 }
 
@@ -160,7 +162,8 @@ async function submitTask() {
   state.pendingFile = null;
   $("attachedFile").textContent = "";
   await loadTaskHistory();
-  openTask(task.id);
+  await openTask(task.id);
+  scrollToPanel("departmentPanel");
 }
 
 async function uploadFile(file) {
@@ -181,6 +184,7 @@ async function uploadFile(file) {
 async function openTask(taskId) {
   state.currentTaskId = taskId;
   $("taskView").hidden = false;
+  closeSidebar();
   clearInterval(state.pollTimer);
   await refreshTask();
   state.pollTimer = setInterval(refreshTask, 1500);
@@ -338,6 +342,39 @@ function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
+function activateNav(id) {
+  state.activeNav = id;
+  for (const btn of document.querySelectorAll(".nav-tab")) {
+    btn.classList.toggle("active", btn.id === id);
+  }
+}
+
+function scrollToPanel(id) {
+  $(id)?.scrollIntoView({behavior: "smooth", block: "start"});
+}
+
+function openSidebar() {
+  $("sidebar").classList.add("open");
+  $("menuBtn").setAttribute("aria-expanded", "true");
+}
+
+function closeSidebar() {
+  $("sidebar").classList.remove("open");
+  $("menuBtn").setAttribute("aria-expanded", "false");
+}
+
+function openHistory() {
+  activateNav("navActivity");
+  openSidebar();
+  $("taskHistory").scrollIntoView({block: "nearest"});
+}
+
+function openProjects() {
+  activateNav("navProjects");
+  openSidebar();
+  $("projectList").scrollIntoView({block: "nearest"});
+}
+
 function wireEvents() {
   $("newProjectBtn").addEventListener("click", createProject);
   $("submitBtn").addEventListener("click", submitTask);
@@ -345,7 +382,24 @@ function wireEvents() {
   $("cancelBtn").addEventListener("click", cancelTask);
   $("settingsBtn").addEventListener("click", openSettings);
   $("closeSettings").addEventListener("click", () => ($("settingsModal").hidden = true));
-  $("menuBtn").addEventListener("click", () => $("sidebar").classList.toggle("open"));
+  $("menuBtn").addEventListener("click", () => {
+    if ($("sidebar").classList.contains("open")) closeSidebar();
+    else openSidebar();
+  });
+  $("quickHistory").addEventListener("click", openHistory);
+  $("quickAgents").addEventListener("click", () => { activateNav("navAgents"); scrollToPanel("agentsPanel"); });
+  $("quickFiles").addEventListener("click", () => scrollToPanel("filesPanel"));
+  $("quickSettings").addEventListener("click", openSettings);
+  $("navHome").addEventListener("click", () => { activateNav("navHome"); closeSidebar(); scrollToPanel("composerPanel"); });
+  $("navProjects").addEventListener("click", openProjects);
+  $("navActivity").addEventListener("click", openHistory);
+  $("navAgents").addEventListener("click", () => { activateNav("navAgents"); closeSidebar(); scrollToPanel("agentsPanel"); });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") { $("settingsModal").hidden = true; closeSidebar(); }
+  });
+  $("settingsModal").addEventListener("click", (e) => {
+    if (e.target === $("settingsModal")) $("settingsModal").hidden = true;
+  });
   $("fileInput").addEventListener("change", (e) => {
     state.pendingFile = e.target.files[0] || null;
     $("attachedFile").textContent = state.pendingFile ? state.pendingFile.name : "";
