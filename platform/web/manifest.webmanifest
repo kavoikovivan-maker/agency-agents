@@ -1,0 +1,19 @@
+{
+  "name": "Company Agency",
+  "short_name": "Agency",
+  "description": "Мультиагентная платформа для рабочих задач",
+  "lang": "ru",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#111315",
+  "theme_color": "#111315",
+  "icons": [
+    {
+      "src": "/static/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
