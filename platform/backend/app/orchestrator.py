@@ -73,9 +73,36 @@ def _task_tokens(task_text: str) -> set[str]:
         if len(tok) > 2 and any(ch.isalpha() for ch in tok)
     }
 
+# Domain expertise cannot be inferred from a generic division alone. The source
+# catalog currently contains software engineers, not beverage technologists.
+BEVERAGE_PRIMARY_IDS = ("operations-manager", "product-manager")
+BEVERAGE_RELATED_IDS = {
+    "operations-manager", "product-manager", "supply-chain-strategist",
+    "specialized-pricing-analyst", "product-trend-researcher",
+}
+SOFTWARE_TERMS = (
+    "api", "backend", "frontend", "software", "программ", "приложен",
+    "сайт", "код", "docker", "wordpress", "базу данных",
+)
+
+
 def _score_agent(agent: dict[str, Any], task_tokens: set[str], domains: set[str]) -> int:
-    score = len(agent["keywords"] & task_tokens)
+    # Only the specialist identity/description may provide a strong semantic
+    # match. Long unrelated agent instructions contain many incidental terms.
+    identity = _normalize_text(
+        f"{agent['id']} {agent['name']} {agent['description']}"
+    )
+    identity_tokens = set(identity.replace("-", " ").split())
+    score = 3 * len(identity_tokens & task_tokens)
+    score += min(2, len(agent["keywords"] & task_tokens))
     for domain in domains:
+        if domain == "beverage":
+            if agent["id"] in BEVERAGE_PRIMARY_IDS:
+                score += 10
+            elif agent["id"] in BEVERAGE_RELATED_IDS:
+                score += 4
+            # Do not reward every engineer for a beverage recipe.
+            continue
         score += DOMAIN_DIVISION_BOOSTS.get(domain, {}).get(agent["division"], 0)
     return score
 
@@ -83,79 +110,83 @@ def _score_agent(agent: dict[str, Any], task_tokens: set[str], domains: set[str]
 def select_agents_with_reasons(task_text: str, max_agents: int = 6) -> list[dict[str, Any]]:
     tokens = _task_tokens(task_text)
     domains = detect_domains(task_text)
+    software_task = any(term in _normalize_text(task_text) for term in SOFTWARE_TERMS)
+    beverage_task = "beverage" in domains and not software_task
+    candidates = catalog()
+    if beverage_task:
+        # A software/WordPress engineer must not be forced into recipe,
+        # manufacturing or beverage marketing work by a division-wide bonus.
+        candidates = [a for a in candidates if a["division"] != "engineering"]
+
     scored: list[tuple[int, dict[str, Any]]] = [
-        (_score_agent(agent, tokens, domains), agent) for agent in catalog()
+        (_score_agent(agent, tokens, domains), agent) for agent in candidates
     ]
-    scored.sort(key=lambda pair: (pair[0], pair[1]["id"]), reverse=True)
-
+    scored.sort(key=lambda pair: (-pair[0], pair[1]["id"]))
     selected: list[dict[str, Any]] = []
-    seen_divisions: set[str] = set()
+    selected_ids: set[str] = set()
 
-    # Ensure important domains are represented before filling by total score.
-    required_divisions: list[str] = []
-    if "beverage" in domains:
-        required_divisions += ["product", "engineering"]
-    if "finance" in domains:
-        required_divisions += ["finance"]
-    if "procurement" in domains:
-        required_divisions += ["project-management", "finance"]
-    if "quality" in domains:
-        required_divisions += ["research", "specialized"]
-    if "marketing" in domains:
-        required_divisions += ["marketing"]
-
-    for division in required_divisions:
-        if len(selected) >= max_agents or division in seen_divisions:
-            continue
-        candidates = [(score, agent) for score, agent in scored if agent["division"] == division]
-        if candidates:
-            score, agent = candidates[0]
+    def add(score: int, agent: dict[str, Any], reason: str) -> None:
+        if len(selected) < max(1, max_agents) and agent["id"] not in selected_ids:
             selected.append({
                 **agent,
                 "routing_score": score,
-                "routing_reason": f"Нужна роль из направления {division} для домена: {', '.join(sorted(domains))}",
+                "routing_reason": reason,
                 "routing_mode": "deterministic",
             })
-            seen_divisions.add(division)
+            selected_ids.add(agent["id"])
+
+    required_ids: list[str] = []
+    required_divisions: list[str] = []
+    if beverage_task:
+        required_ids.extend(BEVERAGE_PRIMARY_IDS)
+    elif "beverage" in domains:
+        required_divisions.extend(["product", "engineering"])
+    if "finance" in domains:
+        required_divisions.append("finance")
+    if "procurement" in domains:
+        required_ids.append("supply-chain-strategist")
+        required_divisions.append("finance")
+    if "quality" in domains:
+        required_ids.append("operations-manager")
+        required_divisions.append("research")
+    if "marketing" in domains:
+        required_divisions.append("marketing")
+
+    for agent_id in dict.fromkeys(required_ids):
+        matches = [(score, a) for score, a in scored if a["id"] == agent_id]
+        if matches:
+            score, agent = matches[0]
+            add(score, agent, f"Профильная роль {agent_id} для: {', '.join(sorted(domains))}")
+
+    for division in dict.fromkeys(required_divisions):
+        matches = [(score, a) for score, a in scored
+                   if a["division"] == division and a["id"] not in selected_ids]
+        if matches:
+            score, agent = matches[0]
+            add(score, agent, f"Нужна роль из направления {division} для: {', '.join(sorted(domains))}")
 
     for score, agent in scored:
-        if len(selected) >= max_agents:
+        if len(selected) >= max(1, max_agents):
             break
-        if score <= 0:
-            continue
-        if any(item["id"] == agent["id"] for item in selected):
+        if score <= 0 or agent["id"] in selected_ids:
             continue
         overlap = sorted(agent["keywords"] & tokens)
-        reason_bits = []
-        if overlap:
-            reason_bits.append("совпали термины: " + ", ".join(overlap[:5]))
-        if domains:
-            boosted = [d for d in sorted(domains) if DOMAIN_DIVISION_BOOSTS.get(d, {}).get(agent["division"], 0)]
-            if boosted:
-                reason_bits.append("подходит под домены: " + ", ".join(boosted))
-        selected.append({
-            **agent,
-            "routing_score": score,
-            "routing_reason": "; ".join(reason_bits) or "релевантная специализация",
-            "routing_mode": "deterministic",
-        })
+        reason = ("совпали термины: " + ", ".join(overlap[:5])) if overlap else (
+            "профильная роль для: " + ", ".join(sorted(domains))
+        )
+        add(score, agent, reason)
 
     if not selected:
-        fallback_ids = {"engineering-backend-architect", "product-feedback-synthesizer", "design-ux-researcher"}
-        for agent in catalog():
-            if agent["id"] in fallback_ids:
-                selected.append({
-                    **agent,
-                    "routing_score": 0,
-                    "routing_reason": "резервный универсальный агент",
-                    "routing_mode": "fallback",
-                })
-                if len(selected) >= max(1, min(3, max_agents)):
-                    break
-    if not selected and catalog():
-        agent = catalog()[0]
-        selected = [{**agent, "routing_score": 0, "routing_reason": "резервный агент", "routing_mode": "fallback"}]
-
+        fallback_ids = ("product-manager", "business-strategist", "research-synthesist")
+        for agent_id in fallback_ids:
+            matches = [(score, a) for score, a in scored if a["id"] == agent_id]
+            if matches:
+                add(*matches[0], "резервная универсальная роль")
+            if len(selected) >= min(3, max(1, max_agents)):
+                break
+    if not selected and scored:
+        score, agent = scored[0]
+        add(score, agent, "резервная роль")
     return selected[:max(1, max_agents)]
 
 
