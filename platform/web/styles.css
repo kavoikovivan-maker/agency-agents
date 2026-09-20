@@ -233,3 +233,31 @@ body{background:radial-gradient(ellipse 70% 350px at 50% -30px,#292d32 0%,#13151
 .project-select-btn{margin-top:6px;border:0;background:transparent;color:#b5c5d8;padding:7px 0;font:inherit;font-size:12px;text-align:left;cursor:pointer;touch-action:manipulation}
 .project-select-btn:focus-visible{outline:2px solid #a5caff;outline-offset:3px}
 @media(max-width:900px){.project-select-btn{font-size:13px;min-height:28px}}
+
+/* Mobile drawer fix: viewport-anchored panel, real close control and outside tap. */
+.sidebar-head-actions{display:flex;align-items:center;gap:8px}
+.sidebar-close{display:none}
+.sidebar-create{font:inherit;font-size:13px;font-weight:600;text-align:center;cursor:pointer;color:#e7ecf1;
+  background:linear-gradient(145deg,#3c434c,#22272d);border:1px solid #57616a;border-radius:13px;
+  padding:12px 14px;min-height:44px}
+.sidebar-backdrop{display:none}
+@media(max-width:900px){
+ .sidebar-backdrop:not([hidden]){display:block;position:fixed;inset:0;z-index:49;width:100vw;height:100vh;
+   height:100dvh;background:rgba(0,0,0,.53);border:0;padding:0;cursor:pointer}
+ .sidebar{position:fixed!important;left:0!important;top:0!important;bottom:0!important;
+   box-sizing:border-box;width:min(320px,88vw)!important;max-width:88vw!important;
+   height:100vh;height:100dvh;overflow-x:hidden;overflow-y:auto;
+   transform:translate3d(-105%,0,0);transition:transform .18s ease;z-index:50;
+   padding:calc(env(safe-area-inset-top,0px) + 18px) 14px calc(env(safe-area-inset-bottom,0px) + 20px);
+   background:#171a1e}
+ .sidebar.open{transform:translate3d(0,0,0)!important}
+ .sidebar-head{position:relative;min-height:46px;gap:6px}
+ .sidebar-head .brand{min-width:0;overflow:hidden;font-size:13px}
+ .sidebar-head .brand span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .sidebar-head-actions{flex-shrink:0}
+ .sidebar-close{display:inline-flex;align-items:center;justify-content:center;font-size:24px}
+ .sidebar .project-list,.sidebar .task-history{overflow-x:hidden}
+ .sidebar .sidebar-section{flex:0 1 auto;min-height:170px}
+ .sidebar-footer{margin-top:auto}
+ .main{max-width:100%;overflow-x:hidden}
+}
