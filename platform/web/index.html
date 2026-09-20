@@ -29,10 +29,10 @@
       </div>
     </aside>
 
-    <main class="main">
+    <main class="main" id="mainContent">
       <header class="topbar">
-        <button id="menuBtn" class="icon-btn only-mobile" title="Меню">≡</button>
-        <div>
+        <button id="menuBtn" class="icon-btn only-mobile" aria-label="Открыть проекты и историю" title="Меню">☰</button>
+        <div class="top-project">
           <div class="eyebrow" id="projectEyebrow">ПРОЕКТ</div>
           <h1 id="projectName">Выберите проект</h1>
         </div>
@@ -42,17 +42,22 @@
         </div>
       </header>
 
-      <section class="composer-card">
-        <textarea id="taskInput" placeholder="Опишите задачу для агентства…" rows="4"></textarea>
+      <section class="composer-card" id="composerPanel">
+        <div class="section-eyebrow">ЗАДАЧА ДЛЯ АГЕНТСТВА</div>
+        <textarea id="taskInput" placeholder="Опишите задачу для агентства…" rows="4" aria-label="Текст задания"></textarea>
         <div class="composer-row">
-          <label class="file-btn">
-            📎 Файл
-            <input type="file" id="fileInput" hidden />
-          </label>
+          <label class="file-btn">⌁ &nbsp;Файл<input type="file" id="fileInput" hidden /></label>
           <span id="attachedFile" class="attached-file"></span>
-          <button id="submitBtn" class="primary-btn">Отправить</button>
+          <button id="submitBtn" class="primary-btn">Отправить ↗</button>
         </div>
       </section>
+
+      <nav class="quick-nav" aria-label="Разделы приложения">
+        <button class="quick-tile" id="quickHistory" type="button"><span class="quick-symbol">◷</span><span>История</span><i class="quick-led"></i></button>
+        <button class="quick-tile" id="quickAgents" type="button"><span class="quick-symbol">♙</span><span>Агенты</span><i class="quick-led"></i></button>
+        <button class="quick-tile" id="quickFiles" type="button"><span class="quick-symbol">▤</span><span>Файлы</span><i class="quick-led"></i></button>
+        <button class="quick-tile" id="quickSettings" type="button"><span class="quick-symbol">⚙</span><span>Настройки</span><i class="quick-led"></i></button>
+      </nav>
 
       <section class="department-panel panel" id="departmentPanel" aria-live="polite">
         <div class="panel-title"><h2>Отделы · выполнение задания</h2><span id="departmentSummary">Ожидание задачи</span></div>
@@ -73,45 +78,28 @@
             <button id="cancelBtn" class="text-btn" hidden>Отменить</button>
           </div>
         </div>
-
-        <details class="agents-used" id="routingReasons">
-          <summary>Почему выбраны эти агенты</summary>
-          <div id="routingReasonsList" class="agents-used-list"></div>
-        </details>
-
-        <details class="agents-used" id="executionPlan">
-          <summary>План выполнения</summary>
-          <div id="executionPlanList" class="agents-used-list"></div>
-        </details>
-
-        <details class="agents-used" id="agentsUsed">
-          <summary>Агенты (<span id="agentsUsedCount">0</span>)</summary>
-          <div id="agentsUsedList" class="agents-used-list"></div>
-        </details>
-
-        <div class="final-answer" id="finalAnswer" hidden>
-          <h2>Итоговый ответ</h2>
-          <div id="finalAnswerText" class="answer-text"></div>
-        </div>
-
+        <details class="agents-used" id="routingReasons"><summary>Почему выбраны эти агенты</summary><div id="routingReasonsList" class="agents-used-list"></div></details>
+        <details class="agents-used" id="executionPlan"><summary>План выполнения</summary><div id="executionPlanList" class="agents-used-list"></div></details>
+        <details class="agents-used" id="agentsUsed"><summary>Агенты (<span id="agentsUsedCount">0</span>)</summary><div id="agentsUsedList" class="agents-used-list"></div></details>
+        <div class="final-answer" id="finalAnswer" hidden><h2>Итоговый ответ</h2><div id="finalAnswerText" class="answer-text"></div></div>
         <div class="event-log" id="eventLog"></div>
       </section>
 
-      <section class="panel">
-        <div class="panel-title">
-          <h2>Каталог агентов</h2>
-          <span id="count">—</span>
-        </div>
+      <section class="panel" id="agentsPanel">
+        <div class="panel-title"><h2>Каталог агентов</h2><span id="count">—</span></div>
         <div id="agents" class="agents"></div>
       </section>
-
       <section class="panel" id="filesPanel">
-        <div class="panel-title">
-          <h2>Файлы проекта</h2>
-        </div>
+        <div class="panel-title"><h2>Файлы проекта</h2></div>
         <div id="filesList" class="files-list"></div>
       </section>
     </main>
+    <nav class="bottom-nav" aria-label="Главная навигация">
+      <button id="navHome" class="nav-tab active" type="button"><span>⌂</span><small>Главная</small></button>
+      <button id="navProjects" class="nav-tab" type="button"><span>▤</span><small>Проекты</small></button>
+      <button id="navActivity" class="nav-tab" type="button"><span>◷</span><small>История</small></button>
+      <button id="navAgents" class="nav-tab" type="button"><span>♙</span><small>Агенты</small></button>
+    </nav>
   </div>
 
   <div class="modal" id="settingsModal" hidden>
