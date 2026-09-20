@@ -261,3 +261,13 @@ body{background:radial-gradient(ellipse 70% 350px at 50% -30px,#292d32 0%,#13151
  .sidebar-footer{margin-top:auto}
  .main{max-width:100%;overflow-x:hidden}
 }
+
+/* iPhone standalone: reserve the status-bar safe area before scrollable content.
+   The native status bar must not paint a blurred layer over the project controls. */
+@media(max-width:900px){
+ .app{background:#111315}
+ .main{padding-top:calc(env(safe-area-inset-top,0px) + 20px)!important;scroll-padding-top:calc(env(safe-area-inset-top,0px) + 18px)}
+ .topbar{position:relative;z-index:1;overflow:visible}
+ .top-project{position:relative;z-index:1}
+ #projectSelectBtn{position:relative;z-index:2;min-height:44px;display:flex;align-items:center;padding:8px 0}
+}
