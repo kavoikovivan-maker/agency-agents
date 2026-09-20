@@ -229,3 +229,7 @@ body{background:radial-gradient(ellipse 70% 350px at 50% -30px,#292d32 0%,#13151
  .nav-tab small{font-size:9px}
  .department-lights{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+.project-select-btn{margin-top:6px;border:0;background:transparent;color:#b5c5d8;padding:7px 0;font:inherit;font-size:12px;text-align:left;cursor:pointer;touch-action:manipulation}
+.project-select-btn:focus-visible{outline:2px solid #a5caff;outline-offset:3px}
+@media(max-width:900px){.project-select-btn{font-size:13px;min-height:28px}}
