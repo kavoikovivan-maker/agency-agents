@@ -141,7 +141,7 @@ class TaskRunner:
                     self._mark_cancelled(task_id)
                     return
 
-                _stage_context = upstream_context[-12000:] if upstream_context else ""
+                _stage_context = upstream_context[-2200:] if upstream_context else ""
                 with session_scope() as db:
                     for agent in stage.agents:
                         db.add(TaskRun(
@@ -178,7 +178,7 @@ class TaskRunner:
 
                 all_results.extend(stage_results)
                 handoff = "\n\n".join(
-                    f"[handoff:{r.agent_id}]\n{r.output_text}" for r in stage_results
+                    f"[handoff:{r.agent_id}]\n{r.output_text[:1100]}" for r in stage_results
                 )
                 upstream_context = (upstream_context + "\n\n" + handoff).strip()
 
