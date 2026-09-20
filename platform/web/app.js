@@ -79,6 +79,8 @@ function renderProjectList() {
 }
 
 async function selectProject(projectId) {
+  $("departmentSummary").textContent = "Ожидание задачи";
+  $("departmentLights").innerHTML = '<span class="department-empty">Отправьте задание — здесь появится маршрут между отделами.</span>';
   state.currentProjectId = projectId;
   const project = state.projects.find((p) => p.id === projectId);
   $("projectName").textContent = project ? project.name : "Проект";
@@ -199,7 +201,66 @@ async function refreshTask() {
   }
 }
 
+const DIVISION_LABELS = {
+  academic: "Исследования", design: "Дизайн", engineering: "Разработка",
+  finance: "Финансы", marketing: "Маркетинг", product: "Продукт",
+  research: "Аналитика", sales: "Продажи", security: "Безопасность",
+  specialized: "Специалисты", "project-management": "Управление",
+  support: "Поддержка",
+};
+
+function renderDepartmentLights(task) {
+  const lights = $("departmentLights");
+  const summary = $("departmentSummary");
+  const routed = [];
+  // Routing events are saved before execution; TaskRun rows appear as each stage starts.
+  for (const event of task.events || []) {
+    if (event.level !== "routing") continue;
+    const match = /^Выбран (\S+)/.exec(event.message || "");
+    if (match && !routed.includes(match[1])) routed.push(match[1]);
+  }
+  const runs = (task.runs || []).filter((run) => run.role === "agent");
+  const byId = new Map(runs.map((run) => [run.agent_id, run]));
+  const divisions = new Map();
+  for (const id of routed) {
+    const entry = state.agents.find((agent) => agent.id === id);
+    if (entry) divisions.set(entry.division, divisions.get(entry.division) || []);
+  }
+  for (const run of runs) {
+    if (!divisions.has(run.division)) divisions.set(run.division, []);
+    divisions.get(run.division).push(run);
+  }
+  if (!divisions.size) {
+    summary.textContent = task.status === "queued" ? "В очереди" : "Маршрут определяется";
+    lights.innerHTML = '<span class="department-empty">Агенты появятся после распределения задания.</span>';
+    return;
+  }
+  const stateFor = (items, division) => {
+    if (task.status === "failed" && items.some((run) => run.status === "running")) return "bad";
+    if (items.some((run) => run.status === "running")) return "busy";
+    if (items.some((run) => run.status === "completed") &&
+        !routed.some((id) => { const a = state.agents.find((agent) => agent.id === id);
+          return a && a.division === division && !byId.has(id); })) return "ok";
+    return "waiting";
+  };
+  const items = [...divisions.entries()].map(([division, entries]) => {
+    const status = stateFor(entries, division);
+    const label = DIVISION_LABELS[division] || division;
+    const detail = status === "busy" ? "Работает" : status === "ok" ? "Готово" :
+      status === "bad" ? "Ошибка" : "Ожидает";
+    return `<div class="department-tile ${status}">
+      <span class="department-led ${status}" aria-hidden="true"></span>
+      <strong>${escapeHtml(label)}</strong><small>${detail}</small>
+    </div>`;
+  });
+  lights.innerHTML = items.join("");
+  summary.textContent = task.status === "completed" ? "Готово" :
+    task.status === "failed" ? "Ошибка выполнения" :
+    task.status === "running" ? "Отделы работают" : "Ожидает запуска";
+}
+
 function renderTask(task) {
+  renderDepartmentLights(task);
   $("taskStatusDot").className = `status-dot ${statusClass(task.status)}`;
   $("taskStatusLabel").textContent = statusLabel(task.status);
   $("taskMeta").textContent = task.classification ? `Классификация: ${task.classification}` : "";
