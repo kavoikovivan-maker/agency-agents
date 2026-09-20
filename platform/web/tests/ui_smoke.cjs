@@ -71,6 +71,15 @@ const el = (id) => window.document.getElementById(id);
 
   click("projectSelectBtn");
   assert(el("sidebar").classList.contains("open"), "Project picker must open");
+  assert(!el("sidebarBackdrop").hidden, "Backdrop must appear when drawer opens");
+  click("closeSidebarBtn");
+  assert(!el("sidebar").classList.contains("open"), "Visible X closes the drawer");
+  assert(el("sidebarBackdrop").hidden, "Backdrop must close with drawer");
+  click("navProjects");
+  click("sidebarBackdrop");
+  assert(!el("sidebar").classList.contains("open"), "Outside tap closes drawer");
+  click("projectSelectBtn");
+  assert(el("sidebar").classList.contains("open"), "Project picker must reopen");
   click("navHome");
   assert(!el("sidebar").classList.contains("open"), "Home closes sidebar");
   click("quickHistory");
