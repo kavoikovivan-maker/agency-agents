@@ -187,8 +187,10 @@ async function openTask(taskId) {
   $("taskView").hidden = false;
   closeSidebar();
   clearInterval(state.pollTimer);
-  await refreshTask();
-  state.pollTimer = setInterval(refreshTask, 1500);
+  const status = await refreshTask();
+  if (!["completed", "failed", "cancelled"].includes(status)) {
+    state.pollTimer = setInterval(refreshTask, 1500);
+  }
 }
 
 async function refreshTask() {
@@ -202,8 +204,10 @@ async function refreshTask() {
   renderTask(task);
   if (["completed", "failed", "cancelled"].includes(task.status)) {
     clearInterval(state.pollTimer);
+    state.pollTimer = null;
     loadTaskHistory();
   }
+  return task.status;
 }
 
 const DIVISION_LABELS = {
