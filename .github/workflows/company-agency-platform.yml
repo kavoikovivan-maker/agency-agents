@@ -51,6 +51,23 @@ jobs:
           npm install --prefix /tmp/company-agency-ui --no-save --silent jsdom@26
           NODE_PATH=/tmp/company-agency-ui/node_modules node platform/web/tests/ui_smoke.cjs
 
+      - name: Verify iPhone standalone install metadata
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from xml.etree import ElementTree
+          root = Path("platform/web")
+          html = (root / "index.html").read_text(encoding="utf-8")
+          manifest = json.loads((root / "manifest.webmanifest").read_text(encoding="utf-8"))
+          assert 'name="apple-mobile-web-app-capable" content="yes"' in html
+          assert 'rel="manifest" href="/static/manifest.webmanifest"' in html
+          assert manifest["display"] == "standalone" and manifest["start_url"] == "/"
+          assert manifest["icons"] and (root / "icon.svg").exists()
+          ElementTree.parse(root / "icon.svg")
+          print("Standalone iPhone install metadata and app icon: verified")
+          PY
+
       - name: Run backend tests
         working-directory: platform/backend
         run: python -m pytest -q
