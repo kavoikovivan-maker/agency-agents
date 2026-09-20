@@ -25,6 +25,27 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Verify iPhone interface script syntax
+        run: |
+          node --check platform/web/app.js
+          python - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          class Ids(HTMLParser):
+              def __init__(self):
+                  super().__init__(); self.ids = []
+              def handle_starttag(self, tag, attrs):
+                  self.ids.extend(v for k,v in attrs if k == "id")
+          parser = Ids()
+          parser.feed(Path("platform/web/index.html").read_text())
+          assert len(parser.ids) == len(set(parser.ids)), "Duplicate HTML IDs"
+          required = {"taskInput","submitBtn","taskView","departmentLights","departmentSummary","quickHistory",
+                      "quickAgents","quickFiles","quickSettings","navHome","navProjects","navActivity","navAgents",
+                      "settingsBtn","closeSettings","newProjectBtn","projectList","taskHistory","agentsPanel","filesPanel"}
+          assert required.issubset(set(parser.ids)), required.difference(parser.ids)
+          print("iPhone UI IDs and JavaScript syntax: verified")
+          PY
+
       - name: Run backend tests
         working-directory: platform/backend
         run: python -m pytest -q
