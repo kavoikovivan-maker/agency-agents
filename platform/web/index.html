@@ -11,18 +11,20 @@
   <link rel="manifest" href="/static/manifest.webmanifest" />
   <link rel="icon" type="image/svg+xml" href="/static/icon.svg" />
   <title>Company Agency</title>
-  <link rel="stylesheet" href="/static/styles.css?v=20260920-iphone-final" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260920-sidebar-fix-2" />
 </head>
 <body>
   <div class="app">
-    <aside class="sidebar" id="sidebar">
+    <button id="sidebarBackdrop" class="sidebar-backdrop" type="button" aria-label="Закрыть меню" hidden></button>
+    <aside class="sidebar" id="sidebar" aria-label="Проекты и история">
       <div class="sidebar-head">
         <div class="brand">
           <span class="dot ok"></span>
           <span>Company Agency</span>
         </div>
-        <button id="newProjectBtn" class="icon-btn" title="Новый проект">+</button>
+        <div class="sidebar-head-actions"><button id="newProjectBtn" class="icon-btn" title="Новый проект" aria-label="Создать проект">+</button><button id="closeSidebarBtn" class="icon-btn sidebar-close" type="button" aria-label="Закрыть панель">×</button></div>
       </div>
+      <button id="createProjectSidebarBtn" class="sidebar-create" type="button">+ Создать тестовый проект</button>
       <div class="project-list" id="projectList"></div>
 
       <div class="sidebar-section">
@@ -119,6 +121,6 @@
     </div>
   </div>
 
-  <script src="/static/app.js?v=20260920-iphone-final"></script>
+  <script src="/static/app.js?v=20260920-sidebar-fix-2"></script>
 </body>
 </html>
