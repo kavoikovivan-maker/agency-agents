@@ -95,6 +95,10 @@ jobs:
           print("final:", (last.get("final_answer") or "")[:1200])
           assert last["status"] == "completed", last.get("error_message")
           assert len(last.get("final_answer") or "") > 50
+          assert all(x["division"] != "engineering" for x in last.get("runs", []) if x["role"] == "agent"), "Unrelated software engineer on beverage task"
+          assert any(x["agent_id"] == "operations-manager" for x in last.get("runs", [])), "Operations agent missing"
+          assert any(x["role"] == "critic" for x in last.get("runs", [])), "Critic handoff missing"
+          assert any(x["role"] == "synthesis" for x in last.get("runs", [])), "Final synthesis missing"
           PY
 
       - name: Logs on failure
@@ -112,3 +116,5 @@ jobs:
 # robustness-pass-rate-limit-and-routing
 
 # rerun-after-ci-green
+
+# Full handoff smoke: iPhone UI and routing
