@@ -58,7 +58,7 @@ class OpenAICompatibleProvider(Provider):
                             {"role": "user", "content": user_prompt},
                         ],
                         "temperature": 0.3,
-                        **({"reasoning_effort": "low", "include_reasoning": False, "max_completion_tokens": 4096}
+                        **({"reasoning_effort": "low", "include_reasoning": False, "max_completion_tokens": 1200}
                            if self.name == "groq" and self.model.startswith("openai/gpt-oss-") else {}),
                     },
                     timeout=settings.provider_timeout_seconds,
