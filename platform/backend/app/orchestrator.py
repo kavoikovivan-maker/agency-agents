@@ -10,7 +10,7 @@ from .catalog import catalog
 from .config import settings
 from .providers.base import Provider
 
-MAX_AGENT_INSTRUCTIONS_CHARS = 12000
+MAX_AGENT_INSTRUCTIONS_CHARS = 3000
 
 CLASSES = {
     "engineering": ["code", "bug", "api", "backend", "frontend", "database", "deploy", "infrastructure", "test", "архитект", "код", "база", "дебаг", "сервис", "производ", "технолог"],
@@ -231,8 +231,8 @@ def build_plan(task_text: str, agents: list[dict[str, Any]]) -> list[PlanStage]:
 def _trim_instructions(text: str) -> tuple[str, bool]:
     if len(text) <= MAX_AGENT_INSTRUCTIONS_CHARS:
         return text, False
-    head = text[:9000]
-    tail = text[-2500:]
+    head = text[:1900]
+    tail = text[-800:]
     return head + "\n\n[...source instructions trimmed...]\n\n" + tail, True
 
 
@@ -245,9 +245,10 @@ def build_agent_prompt(agent: dict[str, Any], task_text: str, context_excerpt: s
         "Use the source agent brief below as your primary operating instructions.\n"
         f"Source brief:\n{source_instructions or 'General domain expertise.'}{trim_note}\n\n"
         "Stay within the source persona. Produce concrete, checkable work. "
-        "When the user writes in Russian, answer in Russian unless asked otherwise."
+        "When the user writes in Russian, answer in Russian unless asked otherwise. "
+        "Keep the response concise (up to 500 words), avoid repetition and do not invent missing inputs."
     )
-    user = task_text if not context_excerpt else f"{task_text}\n\nUpstream/project context:\n{context_excerpt}"
+    user = task_text if not context_excerpt else f"{task_text}\n\nUpstream/project context:\n{context_excerpt[-2200:]}"
     return system, user
 
 
@@ -278,7 +279,7 @@ async def run_stage(
 
 
 async def run_critic(provider: Provider, task_text: str, results: list[StepResult]) -> StepResult:
-    combined = "\n\n".join(f"[{r.agent_id}]\n{r.output_text}" for r in results)
+    combined = "\n\n".join(f"[{r.agent_id}]\n{r.output_text[:1250]}" for r in results)
     system = (
         "You are a critical reviewer. Check the outputs for gaps, contradictions, unsafe assumptions, "
         "math/unit mistakes, and missed requirements. Be brief and specific. Reply in the user's language."
@@ -289,7 +290,7 @@ async def run_critic(provider: Provider, task_text: str, results: list[StepResul
 
 
 async def run_synthesis(provider: Provider, task_text: str, results: list[StepResult], critic: StepResult) -> StepResult:
-    combined = "\n\n".join(f"[{r.agent_id}]\n{r.output_text}" for r in results)
+    combined = "\n\n".join(f"[{r.agent_id}]\n{r.output_text[:1250]}" for r in results)
     system = (
         "You are the final orchestrator. Combine the specialist outputs and critic review into one "
         "clear final answer. Preserve calculations, assumptions, risks and actionable next steps. "
