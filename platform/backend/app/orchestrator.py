@@ -42,6 +42,33 @@ DOMAIN_TERMS = {
 }
 
 
+# Distinctive phrases route all catalog divisions, not just the original
+# software/marketing subset. These hints supplement, not replace, agent
+# identity scoring and the beverage safety filter.
+DIVISION_HINTS = {
+    "academic": ("академическ", "диссертац", "научную статью", "academic"),
+    "design": ("дизайн", "интерфейс", "ux", "ui макет", "design"),
+    "engineering": ("backend", "frontend", "api", "программир", "исходный код"),
+    "finance": ("финансов", "себестоимост", "бюджет", "маржа", "finance"),
+    "game-development": ("разработк игр", "игровой движок", "unity", "unreal", "game development"),
+    "gis": ("геоинформац", "геоданных", "картограф", "gis", "геопространств"),
+    "healthcare": ("медицин", "пациент", "клиник", "healthcare"),
+    "marketing": ("маркетинг", "маркетингов", "продвижени", "marketing"),
+    "paid-media": ("рекламный кабинет", "контекстная реклама", "медиабаинг",
+                   "таргетированная реклама", "paid media"),
+    "product": ("дорожную карту продукта", "продуктов", "product roadmap", "управление продуктом"),
+    "project-management": ("управление проектом", "план проекта", "project management"),
+    "research": ("исследован", "научный обзор", "опрос", "research"),
+    "sales": ("продаж", "коммерческое предложение", "sales"),
+    "security": ("кибербезопас", "уязвимост", "информационная безопасность", "security audit"),
+    "spatial-computing": ("дополненная реальность", "виртуальная реальность",
+                          "spatial computing", "visionos", "ar vr"),
+    "specialized": ("цепочку поставок", "закуп", "поставщик", "supply chain"),
+    "support": ("поддержка клиент", "служба поддержки", "обращения клиент", "helpdesk"),
+    "testing": ("тестировани", "автотест", "регрессионный тест", "quality assurance"),
+}
+
+
 def _normalize_text(text: str) -> str:
     lowered = text.lower().replace("ё", "е")
     lowered = re.sub(r"[^a-zа-я0-9\s.%-]", " ", lowered)
@@ -136,7 +163,13 @@ def select_agents_with_reasons(task_text: str, max_agents: int = 6) -> list[dict
             selected_ids.add(agent["id"])
 
     required_ids: list[str] = []
-    required_divisions: list[str] = []
+    # Prioritize clear domain-specific department names before generic scores.
+    normalized_task = _normalize_text(task_text)
+    required_divisions: list[str] = [
+        division for division, hints in DIVISION_HINTS.items()
+        if any(hint in normalized_task for hint in hints)
+        and (not beverage_task or division != "engineering")
+    ]
     if beverage_task:
         required_ids.extend(BEVERAGE_PRIMARY_IDS)
     elif "beverage" in domains:
