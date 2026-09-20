@@ -202,3 +202,30 @@ body{background:radial-gradient(ellipse 70% 350px at 50% -30px,#292d32 0%,#13151
  .quick-symbol{font-size:25px}
  .department-lights{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+/* iOS browser-safe layout: navigation has its own space and never covers content. */
+@media(max-width:900px){
+ html,body{height:100%;overflow:hidden}
+ .app{display:flex;flex-direction:column;height:100vh;height:100dvh;min-height:0;overflow:hidden}
+ .main{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:16px 12px 22px}
+ .bottom-nav{position:relative;z-index:35;flex:0 0 auto;left:auto;right:auto;bottom:auto;
+   width:auto;margin:0 12px max(7px,env(safe-area-inset-bottom,7px));padding:5px;border-radius:21px}
+ .nav-tab{min-height:49px}
+ .nav-tab span{font-size:22px}
+ .topbar{min-height:auto;margin-bottom:14px;row-gap:9px}
+ .topbar .icon-btn{width:43px;height:43px}
+ .composer-card{padding:15px;margin-bottom:12px}
+ #taskInput{min-height:104px;font-size:16px}
+ .composer-row{margin-top:10px}
+ .quick-nav{margin:12px 0;gap:7px}
+ .quick-tile{min-height:65px;gap:3px}
+ .quick-symbol{font-size:22px}
+ .department-panel{margin:12px 0 15px}
+ .sidebar{bottom:0}
+}
+@media(max-width:375px){
+ .main{padding:12px 10px 16px}
+ .quick-tile{font-size:10px}
+ .nav-tab small{font-size:9px}
+ .department-lights{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
