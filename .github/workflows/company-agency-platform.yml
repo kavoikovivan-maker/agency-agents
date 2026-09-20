@@ -46,6 +46,11 @@ jobs:
           print("iPhone UI IDs and JavaScript syntax: verified")
           PY
 
+      - name: iPhone UI behavior smoke (mock HTTP)
+        run: |
+          npm install --prefix /tmp/company-agency-ui --no-save --silent jsdom@26
+          NODE_PATH=/tmp/company-agency-ui/node_modules node platform/web/tests/ui_smoke.cjs
+
       - name: Run backend tests
         working-directory: platform/backend
         run: python -m pytest -q
