@@ -120,3 +120,5 @@ jobs:
 # Full handoff smoke: iPhone UI and routing
 
 # rerun after bounded Groq handoff fix 2026-09-20
+
+# final-review: 18-department routing, iPhone UI, Groq chain
