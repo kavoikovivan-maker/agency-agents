@@ -61,3 +61,45 @@ def test_agent_prompt_size_guard_preserves_head_and_tail():
     assert "HEAD-IMPORTANT" in trimmed
     assert "TAIL-IMPORTANT" in trimmed
     assert "trimmed" in trimmed
+
+
+def test_beverage_recipe_does_not_route_to_software_engineers():
+    task = "Рассчитай рецептуру молочного лимонада на 1000 литров, Брикс 4.9"
+    agents = select_agents_with_reasons(task, max_agents=4)
+    ids = {a["id"] for a in agents}
+    assert "operations-manager" in ids
+    assert "product-manager" in ids
+    assert not any(a["division"] == "engineering" for a in agents)
+    assert "engineering-wordpress-shopping-cart" not in ids
+    assert len(ids) == len(agents)
+
+
+def test_beverage_marketing_finance_and_procurement_handoffs():
+    tasks = [
+        ("Составь план продаж и маркетинга лимонада", "marketing"),
+        ("Посчитай себестоимость напитка и маржу", "finance"),
+        ("Подбери поставщика сырья для лимонада", "specialized"),
+    ]
+    for task, expected_division in tasks:
+        agents = select_agents_with_reasons(task, max_agents=4)
+        assert expected_division in {a["division"] for a in agents}, task
+        assert not any(a["division"] == "engineering" for a in agents), task
+        ids = [a["id"] for a in agents]
+        plan = build_plan(task, agents)
+        assert sorted(ids) == sorted(a["id"] for stage in plan for a in stage.agents)
+        assert len(ids) == len(set(ids))
+
+
+def test_explicit_software_task_can_use_engineering_agents():
+    task = "Разработай backend API приложения для учета производства лимонада"
+    agents = select_agents_with_reasons(task, max_agents=4)
+    assert "engineering" in {a["division"] for a in agents}
+
+
+def test_generic_task_uses_no_duplicate_or_missing_handoffs():
+    agents = select_agents_with_reasons("Помоги организовать работу", max_agents=4)
+    plan = build_plan("Помоги организовать работу", agents)
+    routed = [a["id"] for a in agents]
+    executed = [a["id"] for stage in plan for a in stage.agents]
+    assert len(routed) == len(set(routed))
+    assert sorted(executed) == sorted(routed)
